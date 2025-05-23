@@ -1,3 +1,7 @@
 from django.shortcuts import render
 
-# Create your views here.
+# Listado de Socios
+# Crear socio
+# Calcular totales por socio
+# Detalle del socio
+# Control de aportaciones por mes

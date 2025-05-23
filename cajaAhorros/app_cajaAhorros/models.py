@@ -22,7 +22,7 @@ class Socio(models.Model):
 
 class Movimiento(models.Model):
     socio = models.ForeignKey(Socio, on_delete=models.CASCADE, related_name='movimientos')
-    detalle_movimiento = models.TextField()
+    detalle_movimiento = models.CharField()
     entrada = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     salida = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     saldo = models.DecimalField(max_digits=12, decimal_places=2)
