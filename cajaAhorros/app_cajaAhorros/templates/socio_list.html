@@ -34,6 +34,7 @@
                 <th>Fecha de Nacimiento</th>
                 <th>Foto</th>
                 <th>Fecha de Ingreso</th>
+                <th>Acciones</th>
             </tr>
         </thead>
         <tbody>
@@ -50,6 +51,10 @@
                     {% endif %}
                 </td>
                 <td>{{ socio.fecha_ingreso }}</td>
+                <td>
+    <a href="{% url 'ver_aportaciones_socio' socio.id %}">👁 Ver</a>
+</td>
+
             </tr>
             {% empty %}
             <tr>
