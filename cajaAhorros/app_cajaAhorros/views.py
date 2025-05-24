@@ -12,6 +12,7 @@ def socio_list(request):
     }
 
     return render(request, 'socio_list.html', contexto)
+
 # Crear socio
 def crear_socio(request):
     if request.method == 'POST':
