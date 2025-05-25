@@ -3,7 +3,7 @@ from django.db.models import Sum, Q
 from .models import Movimiento
 from .models import Socio
 from .forms import SocioForm
-
+from datetime import date
 # Listado de Socios
 def socio_list(request):
     
@@ -45,6 +45,12 @@ def ver_aportaciones_socio(request, socio_id):
 # Detalle del socio
 def detalle_socio(request, pk):
     socio = get_object_or_404(Socio, pk=pk)
-    return render(request, 'detalle.html', {'socio': socio})
+    # Calcular edad
+    hoy = date.today()
+    edad = hoy.year - socio.fecha_nacimiento.year - (
+        (hoy.month, hoy.day) < (socio.fecha_nacimiento.month, socio.fecha_nacimiento.day)
+    )
+
+    return render(request, 'detalle.html', {'socio': socio, 'edad': edad})
 
 # Control de aportaciones por mes
