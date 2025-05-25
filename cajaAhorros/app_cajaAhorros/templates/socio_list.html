@@ -51,7 +51,8 @@
                     {% endif %}
                 </td>
                 <td>{{ socio.fecha_ingreso }}</td>
-                <td>
+                <td>  
+    <a href="{% url 'detalle_socio' socio.id %}">🔍 Ver Detalle</a>
     <a href="{% url 'ver_aportaciones_socio' socio.id %}">👁 Ver</a>
 </td>
 

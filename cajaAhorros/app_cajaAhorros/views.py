@@ -42,5 +42,7 @@ def ver_aportaciones_socio(request, socio_id):
     })
 
 # Detalle del socio
-
+def detalle_socio(request, pk):
+    socio = get_object_or_404(Socio, pk=pk)
+    return render(request, 'detalle.html', {'socio': socio})
 # Control de aportaciones por mes
