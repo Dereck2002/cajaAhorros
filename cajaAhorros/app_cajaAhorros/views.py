@@ -12,6 +12,7 @@ def socio_list(request):
     }
 
     return render(request, 'socio_list.html', contexto)
+
 # Crear socio
 def crear_socio(request):
     if request.method == 'POST':
@@ -45,4 +46,5 @@ def ver_aportaciones_socio(request, socio_id):
 def detalle_socio(request, pk):
     socio = get_object_or_404(Socio, pk=pk)
     return render(request, 'detalle.html', {'socio': socio})
+
 # Control de aportaciones por mes

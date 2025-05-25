@@ -31,9 +31,7 @@
             <tr>
                 <th>Cédula</th>
                 <th>Nombres</th>
-                <th>Fecha de Nacimiento</th>
                 <th>Foto</th>
-                <th>Fecha de Ingreso</th>
                 <th>Acciones</th>
             </tr>
         </thead>
@@ -42,7 +40,6 @@
             <tr>
                 <td>{{ socio.cedula }}</td>
                 <td>{{ socio.nombre }} {{ socio.apellido }}</td>
-                <td>{{ socio.fecha_nacimiento }}</td>
                 <td>
                     {% if socio.foto %}
                         <img src="{{ socio.foto.url }}" alt="Foto de {{ socio.nombre }}">
@@ -50,7 +47,6 @@
                         Sin foto
                     {% endif %}
                 </td>
-                <td>{{ socio.fecha_ingreso }}</td>
                 <td>  
     <a href="{% url 'detalle_socio' socio.id %}">🔍 Ver Detalle</a>
     <a href="{% url 'ver_aportaciones_socio' socio.id %}">👁 Ver</a>
