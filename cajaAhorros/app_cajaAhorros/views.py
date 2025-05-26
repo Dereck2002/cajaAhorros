@@ -5,6 +5,7 @@ from .forms import SocioForm
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 from django.core.paginator import Paginator
+from decimal import Decimal
 
 
 # Listado de Socios
@@ -93,6 +94,33 @@ def ver_aportaciones_socio(request, socio_id):
         'saldo': saldo,
         'meses_faltantes': meses_faltantes,
     })
+
+# Agregar Nuevo Aportes
+def agregar_aporte(request, socio_id):
+    socio = get_object_or_404(Socio, pk=socio_id)
+
+    if request.method == 'POST':
+        detalle = request.POST.get('detalle_movimiento')
+        entrada = request.POST.get('entrada')
+        fecha = request.POST.get('fecha_movimiento')
+
+        entrada_decimal = Decimal(entrada)
+
+        ultimo_movimiento = Movimiento.objects.filter(socio=socio).order_by('-fecha_movimiento').first()
+        saldo_anterior = ultimo_movimiento.saldo if ultimo_movimiento else Decimal('0.00')
+
+        nuevo_saldo = saldo_anterior + entrada_decimal
+
+        Movimiento.objects.create(
+            socio=socio,
+            detalle_movimiento=detalle,
+            entrada=entrada_decimal,
+            salida=Decimal('0.00'),
+            saldo=nuevo_saldo,
+            fecha_movimiento=fecha
+        )
+
+        return redirect('ver_aportaciones_socio', socio_id=socio_id)
 
 # Detalle del socio
 def detalle_socio(request, pk):
