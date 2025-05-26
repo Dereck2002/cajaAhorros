@@ -78,12 +78,12 @@ def ver_aportaciones_socio(request, socio_id):
     meses_faltantes = []
     if movimientos.exists():
         inicio = movimientos.first().fecha_movimiento.replace(day=1)
-        fin = datetime.today().date().replace(day=1)
+        fin = date.today().replace(day=1)
         actual = inicio
 
         while actual <= fin:
             if (actual.year, actual.month) not in meses_con_aporte_set:
-                meses_faltantes.append(actual.strftime('%B %Y')) 
+                meses_faltantes.append(actual.strftime('%B %Y'))
             actual += relativedelta(months=1)
 
     return render(request, 'ver_aportaciones_socio.html', {
