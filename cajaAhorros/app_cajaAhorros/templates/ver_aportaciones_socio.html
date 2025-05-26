@@ -4,6 +4,25 @@
 <p><strong>Total de retiros:</strong> ${{ total_retiros|floatformat:2 }}</p>
 <p><strong>Saldo actual:</strong> ${{ saldo|floatformat:2 }}</p>
 
+{% if movimientos|length == 0 %}
+    <div style="border: 2px solid orange; padding: 10px; margin-bottom: 20px; background-color: #fff3cd;">
+        ⚠ Sin aportaciones registradas para este socio.
+    </div>
+{% elif meses_faltantes %}
+    <div style="border: 2px solid red; padding: 10px; margin-bottom: 20px; background-color: #ffe6e6;">
+        <strong>⚠ Meses sin aportaciones detectados:</strong>
+        <ul>
+            {% for mes in meses_faltantes %}
+                <li>{{ mes }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% else %}
+    <div style="border: 2px solid green; padding: 10px; margin-bottom: 20px; background-color: #e6ffe6;">
+        ✅ No hay meses faltantes de aportaciones.
+    </div>
+{% endif %}
+
 <table border="1">
     <thead>
         <tr>

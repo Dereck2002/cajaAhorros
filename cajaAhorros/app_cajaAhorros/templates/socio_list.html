@@ -26,6 +26,17 @@
 <body>
     <h1>Listado de Socios</h1>
     <a href="{% url 'crear_socio' %}">➕ Nuevo Socio</a>
+
+    <!-- Selector de filtro -->
+    <form method="get">
+        <label for="filtro">Filtrar por estado de aportación:</label>
+        <select name="filtro" id="filtro" onchange="this.form.submit()">
+            <option value="todos" {% if filtro == 'todos' %}selected{% endif %}>Todos</option>
+            <option value="al_dia" {% if filtro == 'al_dia' %}selected{% endif %}>Al día</option>
+            <option value="deudores" {% if filtro == 'deudores' %}selected{% endif %}>Deudores</option>
+        </select>
+    </form>
+
     <table>
         <thead>
             <tr>
@@ -36,7 +47,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for socio in socio %}
+            {% for socio in socios %}
             <tr>
                 <td>{{ socio.cedula }}</td>
                 <td>{{ socio.nombre }} {{ socio.apellido }}</td>
@@ -48,17 +59,29 @@
                     {% endif %}
                 </td>
                 <td>  
-    <a href="{% url 'detalle_socio' socio.id %}">🔍 Ver Detalle</a>
-    <a href="{% url 'ver_aportaciones_socio' socio.id %}">👁 Ver</a>
-</td>
-
+                    <a href="{% url 'detalle_socio' socio.id %}">🔍 Ver Detalle</a>
+                    <a href="{% url 'ver_aportaciones_socio' socio.id %}">👁 Ver</a>
+                </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6">No hay socios registrados.</td>
+                <td colspan="4">No hay socios registrados.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+
+    <!-- Paginación -->
+    <div style="margin-top: 20px;">
+        {% if socios.has_previous %}
+            <a href="?page={{ socios.previous_page_number }}&filtro={{ filtro }}">⬅ Anterior</a>
+        {% endif %}
+
+        <span>Página {{ socios.number }} de {{ socios.paginator.num_pages }}</span>
+
+        {% if socios.has_next %}
+            <a href="?page={{ socios.next_page_number }}&filtro={{ filtro }}">Siguiente ➡</a>
+        {% endif %}
+    </div>
 </body>
 </html>
