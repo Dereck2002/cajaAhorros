@@ -1,9 +1,6 @@
 <h2>Resumen de Aportaciones de {{ socio.nombre }} {{ socio.apellido }}</h2>
 
-<!-- Botón para abrir el modal -->
-<button onclick="document.getElementById('modalAporte').style.display='block'" style="margin-bottom: 20px;">
-    ➕ Agregar Aportación
-</button>
+<button onclick="abrirModalAgregar()" style="margin-bottom: 20px;">➕ Agregar Aportación</button>
 
 <p><strong>Total de aportes:</strong> ${{ total_aportes|floatformat:2 }}</p>
 <p><strong>Total de retiros:</strong> ${{ total_retiros|floatformat:2 }}</p>
@@ -36,6 +33,7 @@
             <th>Entrada</th>
             <th>Salida</th>
             <th>Saldo</th>
+            <th>Acciones</th>
         </tr>
     </thead>
     <tbody>
@@ -46,6 +44,10 @@
             <td>${{ m.entrada }}</td>
             <td>${{ m.salida }}</td>
             <td>${{ m.saldo }}</td>
+            <td>
+                <button onclick="abrirModalEditar({{ m.id }}, '{{ m.detalle_movimiento }}', {{ m.entrada }}, '{{ m.fecha_movimiento }}')">✏️ Editar</button>
+                <button onclick="abrirModal('{{ m.id }}', 'la aportación de {{ m.fecha_movimiento }}', 'aporte')">🗑 Eliminar</button>
+            </td>
         </tr>
         {% endfor %}
     </tbody>
@@ -53,23 +55,70 @@
 
 <a href="{% url 'socio_list' %}">⬅ Volver al listado</a>
 
-<!-- Modal de Aportación -->
+<!-- Modal para Agregar/Editar Aportación -->
 <div id="modalAporte" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(0,0,0,0.5); z-index:1000;">
     <div style="background:white; width:400px; margin:100px auto; padding:20px; border-radius:8px; position:relative;">
-        <h3>Agregar Aportación</h3>
-        <form method="POST" action="{% url 'agregar_aporte' socio.id %}">
+        <h3 id="modalTitulo">Agregar Aportación</h3>
+        <form method="POST" id="formAporte" action="{% url 'agregar_aporte' socio.id %}">
             {% csrf_token %}
             <label>Detalle:</label><br>
-            <input type="text" name="detalle_movimiento" required><br><br>
+            <input type="text" name="detalle_movimiento" id="detalle_movimiento" required><br><br>
 
             <label>Monto del aporte ($):</label><br>
-            <input type="number" step="0.01" name="entrada" required><br><br>
+            <input type="number" step="0.01" name="entrada" id="entrada" required><br><br>
 
             <label>Fecha:</label><br>
-            <input type="date" name="fecha_movimiento" required><br><br>
+            <input type="date" name="fecha_movimiento" id="fecha_movimiento" required><br><br>
 
-            <button type="submit">Guardar</button>
-            <button type="button" onclick="document.getElementById('modalAporte').style.display='none'">Cancelar</button>
+            <button type="submit" id="btnGuardar">Guardar</button>
+            <button type="button" onclick="cerrarModal()">Cancelar</button>
         </form>
     </div>
 </div>
+
+<!-- Modal de confirmación reutilizable -->
+{% include "includes/modal_confirmacion.html" %}
+
+<script>
+function abrirModalAgregar() {
+    document.getElementById('modalTitulo').innerText = 'Agregar Aportación';
+    document.getElementById('formAporte').action = "{% url 'agregar_aporte' socio.id %}";
+    document.getElementById('detalle_movimiento').value = '';
+    document.getElementById('entrada').value = '';
+    document.getElementById('fecha_movimiento').value = '';
+    document.getElementById('modalAporte').style.display = 'block';
+}
+
+function abrirModalEditar(id, detalle, entrada, fecha) {
+    document.getElementById('modalTitulo').innerText = 'Editar Aportación';
+    document.getElementById('formAporte').action = '/aportes/editar/' + id + '/';
+    document.getElementById('detalle_movimiento').value = detalle;
+    document.getElementById('entrada').value = entrada;
+    document.getElementById('fecha_movimiento').value = fecha;
+    document.getElementById('modalAporte').style.display = 'block';
+}
+
+function cerrarModal() {
+    document.getElementById('modalAporte').style.display = 'none';
+}
+
+function abrirModal(id, nombre, tipo) {
+    const modal = document.getElementById('modalEliminar');
+    const texto = document.getElementById('modalTexto');
+    const form = document.getElementById('formEliminar');
+
+    texto.textContent = `¿Estás seguro de que deseas eliminar ${nombre}?`;
+
+    if (tipo === 'socio') {
+        form.action = `/socios/eliminar/${id}/`;
+    } else if (tipo === 'aporte') {
+        form.action = `/aportes/eliminar/${id}/`;
+    }
+
+    modal.style.display = 'flex';
+}
+
+function cerrarModalConfirmacion() {
+    document.getElementById('modalEliminar').style.display = 'none';
+}
+</script>

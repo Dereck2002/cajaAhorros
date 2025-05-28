@@ -25,8 +25,15 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('socios/', views.socio_list, name='socio_list'),
     path('socios/crear/', views.crear_socio, name='crear_socio'),
+    path('socios/<int:pk>/editar/', views.editar_socio, name='editar_socio'),
+    path('socios/eliminar/<int:pk>/', views.eliminar_socio, name='eliminar_socio'),
     path('socio/<int:socio_id>/aportaciones/', views.ver_aportaciones_socio, name='ver_aportaciones_socio'),
     path('socio/<int:socio_id>/agregar-aporte/', views.agregar_aporte, name='agregar_aporte'),
+    path('aportes/editar/<int:aporte_id>/', views.editar_aporte, name='editar_aporte'),
+    path('aportes/eliminar/<int:aporte_id>/', views.eliminar_aporte, name='eliminar_aporte'),
+    path('cargos/agregar/', views.agregar_cargo, name='agregar_cargo'),
+    path('cargos/editar/<int:id>/', views.editar_cargo, name='editar_cargo'),
+    path('cargos/eliminar/<int:id>/', views.eliminar_cargo, name='eliminar_cargo'),
     path('socios/<int:pk>/', views.detalle_socio, name='detalle_socio'),
 ]
 

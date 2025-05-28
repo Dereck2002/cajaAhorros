@@ -1,17 +1,19 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Sum, Q
-from .models import Movimiento, Socio
+from .models import Movimiento, Socio, Cargo
 from .forms import SocioForm
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 from django.core.paginator import Paginator
 from decimal import Decimal
+from django.views.decorators.http import require_POST
 
 
 # Listado de Socios
 def socio_list(request):
     filtro = request.GET.get('filtro', 'todos')
     socios = Socio.objects.all()
+    cargos = Cargo.objects.all()
     hoy = date.today().replace(day=1)
 
     def meses_faltantes(socio):
@@ -26,7 +28,7 @@ def socio_list(request):
         actual = inicio
         while actual <= hoy:
             if (actual.year, actual.month) not in meses_aporte_set:
-                return True  # Falta al menos un mes
+                return True  # Faltan aportes al menos un mes
             actual += relativedelta(months=1)
         return False  # Al día
 
@@ -41,14 +43,16 @@ def socio_list(request):
             socios_filtrados.append(socio)
 
     # Paginación
-    paginator = Paginator(socios_filtrados, 10)  # 10 por página
+    paginator = Paginator(socios_filtrados, 10) 
     page = request.GET.get('page')
     socios_paginados = paginator.get_page(page)
 
     return render(request, 'socio_list.html', {
         'socios': socios_paginados,
-        'filtro': filtro
+        'filtro': filtro,
+        'cargos': cargos,
     })
+
 
 # Crear socio
 def crear_socio(request):
@@ -61,6 +65,29 @@ def crear_socio(request):
         form = SocioForm()
     
     return render(request, 'crear_socio.html', {'form': form})
+
+
+# Editar socio
+def editar_socio(request, pk):
+    socio = get_object_or_404(Socio, pk=pk)
+    if request.method == 'POST':
+        form = SocioForm(request.POST, request.FILES, instance=socio)
+        if form.is_valid():
+            form.save()
+            return redirect('socio_list')
+    else:
+        form = SocioForm(instance=socio)
+
+    return render(request, 'crear_socio.html', {'form': form})
+
+# Eliminar socio
+def eliminar_socio(request, pk):
+    socio = get_object_or_404(Socio, pk=pk)
+    if request.method == 'POST':
+        socio.delete()
+        return redirect('socio_list')
+    return render(request, 'eliminar_socio.html', {'socio': socio})
+
 
 # Calcular totales por socio
 def ver_aportaciones_socio(request, socio_id):
@@ -95,6 +122,7 @@ def ver_aportaciones_socio(request, socio_id):
         'meses_faltantes': meses_faltantes,
     })
 
+
 # Agregar Nuevo Aportes
 def agregar_aporte(request, socio_id):
     socio = get_object_or_404(Socio, pk=socio_id)
@@ -120,7 +148,7 @@ def agregar_aporte(request, socio_id):
             fecha_movimiento=fecha
         )
 
-        return redirect('ver_aportaciones_socio', socio_id=socio_id)
+        return redirect('ver_aportaciones_socio', socio_id=socio_id)        
 
 # Detalle del socio
 def detalle_socio(request, pk):
@@ -133,4 +161,59 @@ def detalle_socio(request, pk):
 
     return render(request, 'detalle.html', {'socio': socio, 'edad': edad})
 
-# Control de aportaciones por mes
+
+# Editar aporte
+def editar_aporte(request, aporte_id):
+    aporte = get_object_or_404(Movimiento, pk=aporte_id)
+
+    if request.method == 'POST':
+        detalle = request.POST.get('detalle_movimiento')
+        entrada = request.POST.get('entrada')
+        fecha = request.POST.get('fecha_movimiento')
+
+        entrada_decimal = Decimal(entrada)
+
+        # Actualizar campos
+        aporte.detalle_movimiento = detalle
+        aporte.entrada = entrada_decimal
+        aporte.fecha_movimiento = fecha
+        # Saldo puede ser recalculado según lógica de negocio; aquí simplificamos y dejamos igual.
+        aporte.save()
+        return redirect('ver_aportaciones_socio', socio_id=aporte.socio.id)
+
+    # Si por alguna razón GET: redirigimos al detalle
+    return redirect('ver_aportaciones_socio', socio_id=aporte.socio.id)
+
+
+# Eliminar aporte
+def eliminar_aporte(request, aporte_id):
+    aporte = get_object_or_404(Movimiento, pk=aporte_id)
+    socio_id = aporte.socio.id
+
+    if request.method == 'POST':
+        aporte.delete()
+        return redirect('ver_aportaciones_socio', socio_id=socio_id)
+
+    return render(request, 'eliminar_aporte_confirm.html', {'aporte': aporte})
+
+
+@require_POST
+def agregar_cargo(request):
+    nombre = request.POST.get('nombre_cargo')
+    estado = request.POST.get('estado') == 'true'
+    Cargo.objects.create(nombre_cargo=nombre, estado=estado)
+    return redirect('socio_list')
+
+@require_POST
+def editar_cargo(request, id):
+    cargo = get_object_or_404(Cargo, id=id)
+    cargo.nombre_cargo = request.POST.get('nombre_cargo')
+    cargo.estado = request.POST.get('estado') == 'true'
+    cargo.save()
+    return redirect('socio_list')
+
+@require_POST
+def eliminar_cargo(request, id):
+    cargo = get_object_or_404(Cargo, id=id)
+    cargo.delete()
+    return redirect('socio_list')

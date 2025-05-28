@@ -27,7 +27,10 @@
     <h1>Listado de Socios</h1>
     <a href="{% url 'crear_socio' %}">➕ Nuevo Socio</a>
 
-    <!-- Selector de filtro -->
+    <!-- Botón para gestionar cargos -->
+    <button onclick="abrirModalCargo()" style="margin-top: 20px;">⚙️ Gestionar Cargos</button>
+
+    <!-- Filtro por estado de aportación -->
     <form method="get">
         <label for="filtro">Filtrar por estado de aportación:</label>
         <select name="filtro" id="filtro" onchange="this.form.submit()">
@@ -37,6 +40,10 @@
         </select>
     </form>
 
+    <!-- Buscador -->
+    <input type="text" id="buscador" placeholder="Buscar..." onkeyup="filtrarTabla()" style="margin-top: 15px; padding: 5px; width: 200px;">
+
+    <!-- Tabla de socios -->
     <table>
         <thead>
             <tr>
@@ -58,9 +65,11 @@
                         Sin foto
                     {% endif %}
                 </td>
-                <td>  
+                <td>
                     <a href="{% url 'detalle_socio' socio.id %}">🔍 Ver Detalle</a>
                     <a href="{% url 'ver_aportaciones_socio' socio.id %}">👁 Ver</a>
+                    <a href="{% url 'editar_socio' socio.id %}">✏️ Editar</a>
+                    <a href="#" onclick="abrirModal('{{ socio.id }}', '{{ socio.nombre }} {{ socio.apellido }}', 'socio'); return false;">🗑 Eliminar</a>
                 </td>
             </tr>
             {% empty %}
@@ -83,5 +92,42 @@
             <a href="?page={{ socios.next_page_number }}&filtro={{ filtro }}">Siguiente ➡</a>
         {% endif %}
     </div>
+
+    {% include "includes/modal_confirmacion.html" %}
+    {% include "includes/modal_agregar_cargos.html" %}
+
+    <script>
+    // Filtro dinámico para la tabla
+    function filtrarTabla() {
+        const input = document.getElementById("buscador").value.toLowerCase();
+        const filas = document.querySelectorAll("table tbody tr");
+
+        filas.forEach(fila => {
+            const textoFila = fila.innerText.toLowerCase();
+            fila.style.display = textoFila.includes(input) ? "" : "none";
+        });
+    }
+
+    // Modal eliminar socio
+    function abrirModal(id, nombre, tipo) {
+        const modal = document.getElementById('modalEliminar');
+        const texto = document.getElementById('modalTexto');
+        const form = document.getElementById('formEliminar');
+
+        texto.textContent = `¿Estás seguro de que deseas eliminar a ${nombre}?`;
+
+        if (tipo === 'socio') {
+            form.action = `/socios/eliminar/${id}/`;
+        } else if (tipo === 'aporte') {
+            form.action = `/aportaciones/eliminar/${id}/`;
+        }
+
+        modal.style.display = 'flex';
+    }
+
+    function cerrarModal() {
+        document.getElementById('modalEliminar').style.display = 'none';
+    }
+    </script>
 </body>
 </html>
