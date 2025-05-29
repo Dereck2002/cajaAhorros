@@ -7,9 +7,11 @@ from dateutil.relativedelta import relativedelta
 from django.core.paginator import Paginator
 from decimal import Decimal
 from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
 
 
 # Listado de Socios
+@login_required
 def socio_list(request):
     filtro = request.GET.get('filtro', 'todos')
     socios = Socio.objects.all()

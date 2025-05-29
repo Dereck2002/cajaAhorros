@@ -16,7 +16,7 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from app_cajaAhorros import views
 from django.conf import settings
 from django.conf.urls.static import static
@@ -35,6 +35,7 @@ urlpatterns = [
     path('cargos/editar/<int:id>/', views.editar_cargo, name='editar_cargo'),
     path('cargos/eliminar/<int:id>/', views.eliminar_cargo, name='eliminar_cargo'),
     path('socios/<int:pk>/', views.detalle_socio, name='detalle_socio'),
+    path('accounts/', include('allauth.urls')),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

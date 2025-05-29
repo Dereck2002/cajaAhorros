@@ -1,26 +1,12 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Detalle del Socio</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
-        .detalle {
-            margin: 30px;
-        }
-        img {
-            width: 150px;
-            height: 150px;
-            object-fit: cover;
-            border-radius: 5px;
-        }
-    </style>
-</head>
-<body>
+    {% extends "base.html" %}
+
+    {% block title %}<h1>Detalle del Socio</h1>{% endblock title %}
+
+    {% block content %} 
+
+    <div class="container mt-4">
     <div class="detalle">
-        <h1>Detalle del Socio</h1>
+        
         <p><strong>Cédula:</strong> {{ socio.cedula }}</p>
         <p><strong>Nombre:</strong> {{ socio.nombre }} {{ socio.apellido }}</p>
         <p><strong>Edad:</strong> {{ edad }} años</p>
@@ -28,7 +14,7 @@
         <p><strong>Fecha de Ingreso:</strong> {{ socio.fecha_ingreso }}</p>
         <p><strong>Foto:</strong><br>
             {% if socio.foto %}
-                <img src="{{ socio.foto.url }}" alt="Foto del socio">
+                <img class="img-thumbnail" width="100" src="{{ socio.foto.url }}" alt="Foto del socio">
             {% else %}
                 Sin foto disponible
             {% endif %}
@@ -36,5 +22,6 @@
         <br>
         <a href="{% url 'socio_list' %}">← Volver al listado</a>
     </div>
-</body>
-</html>
+</div>
+
+{% endblock content %} 
