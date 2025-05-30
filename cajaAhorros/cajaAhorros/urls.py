@@ -36,6 +36,8 @@ urlpatterns = [
     path('cargos/eliminar/<int:id>/', views.eliminar_cargo, name='eliminar_cargo'),
     path('socios/<int:pk>/', views.detalle_socio, name='detalle_socio'),
     path('accounts/', include('allauth.urls')),
+    path('dashboard/', views.socio_list, name='dashboard'),
+    path('accounts/profile/', views.socio_list, name='profile'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

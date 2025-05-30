@@ -1,0 +1,62 @@
+{% extends 'account/base.html' %}
+{% load static %}
+{% load i18n %}
+{% load account socialaccount %}
+
+{% block title %}Registro de nuevo paciente{% endblock title %}
+    
+{% block content %}
+                    
+                        <div class="text-center mb-7"><a class="d-flex flex-center text-decoration-none mt-4 mb-4" href="https://human-centric-hce.s3.amazonaws.com/index.html">
+                              <div class="d-flex align-items-center fw-bolder fs-3 d-inline-block"><img src="https://humancentric.school/wp-content/uploads/2024/08/HumanCentric-Isotipo.png" alt="phoenix" width="58" />
+                              </div>
+                            </a>
+                            <h3 class="text-body-highlight">Registro de nuevo paciente</h3>
+                            <p class="text-body-tertiary">Registrese para poder crear una cita</p>
+                          </div>
+                        <div class="card-body p-4">
+                            <div class="p-3">
+                                <form class="mt-4 needs-validation" novalidate method="POST" action="{% url 'account_login' %}">
+                                    {% csrf_token %}
+                                    <div class="mb-3">
+                                        {{ form.login }}
+                                    </div>
+
+                                    <div class="mb-3">
+                                        {{ form.password }}
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <div class="col-sm-6">
+                                            <div class="form-check">
+                                                {{ form.remember }}
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6 text-end">
+                                            <button class="btn btn-primary w-md waves-effect waves-light" type="submit">sign In</button>
+                                        </div>
+                                    </div>
+                                    
+
+                                    <div class="mt-2 mb-0 row">
+                                        <div class="col-12 mt-4">
+                                            <a href="{% url 'account_reset_password' %}"><i class="mdi mdi-lock"></i> Olvidaste tu contraseña?</a>
+                                        </div>
+                                    </div>
+
+                                </form>
+
+                            </div>
+                        </div>
+
+
+                    <div class="mt-5 text-center">
+                        <p>Don't have an account ? <a href="{{ signup_url }}" class="fw-medium text-primary"> Signup now </a> </p>
+                        
+                    </div>
+
+{% endblock content %}
+
+  
+  
+

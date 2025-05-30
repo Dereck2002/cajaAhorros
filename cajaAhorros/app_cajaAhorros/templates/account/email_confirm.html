@@ -1,0 +1,47 @@
+{% extends 'account/base.html' %}
+{% load static %}
+{% load i18n %}
+{% load account %}
+
+{% block title %}{% trans "Confirm E-mail Address" %}{% endblock %}
+{% block content %}
+
+                        <div class="card overflow-hidden">
+                            <div class="bg-primary">
+                                <div class="text-primary text-center p-4">
+                                    <h5 class="text-white font-size-20">Email-Confirm</h5>
+                                    <p class="text-white-50">Get your free Veltrix account now.</p>
+                                    <a href="{% url 'dashboard' %}" class="logo logo-admin">
+                                        <img src="{% static 'images/logo-sm.png' %}" height="24" alt="logo">
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="p-lg-5 p-4 text-center">
+                                <div class="mt-4">
+                                    <h4>{% trans "Confirm E-mail Address" %} !</h4>
+                                    {% if confirmation %}
+
+                                        {% user_display confirmation.email_address.user as user_display %}
+
+                                        <p>{% blocktrans with confirmation.email_address.email as email %}Please confirm that <a href="mailto:{{ email }}">{{ email }}</a> is an e-mail address for user {{ user_display }}.{% endblocktrans %}</p>
+
+                                        <form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
+                                        {% csrf_token %}
+                                            <button class="btn btn-success"type="submit">{% trans 'Confirm' %}</button>
+                                        </form>
+
+                                        {% else %}
+
+                                        {% url 'account_email' as email_url %}
+
+                                        <p>{% blocktrans %}This e-mail confirmation link expired or is invalid. Please <a href="{{ email_url }}">issue a new e-mail confirmation request</a>.{% endblocktrans %}</p>
+
+                                    {% endif %}
+                                </div>
+                                <div class="mt-4 text-center">
+                                    <p class="mb-0">Back to home ? <a href="{% url 'dashboard' %}" class="fw-semibold text-primary text-decoration-underline"> Dashboard </a> </p>
+                                    <p class="mb-0">© <script>document.write(new Date().getFullYear())</script> Veltrix. Crafted with <i class="mdi mdi-heart text-danger"></i> by Themesdesign</p>
+                                </div>
+                            </div>
+                        </div>
+{% endblock content %}

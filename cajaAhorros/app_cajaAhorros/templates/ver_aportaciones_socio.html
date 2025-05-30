@@ -1,4 +1,10 @@
-<h2>Resumen de Aportaciones de {{ socio.nombre }} {{ socio.apellido }}</h2>
+    {% extends "base.html" %}
+
+    {% block title %}<h2>Resumen de Aportaciones de {{ socio.nombre }} {{ socio.apellido }}</h2>{% endblock title %}
+
+    {% block content %} 
+
+    <div class="container mt-4">
 
 <button onclick="abrirModalAgregar()" style="margin-bottom: 20px;">➕ Agregar Aportación</button>
 
@@ -75,9 +81,14 @@
         </form>
     </div>
 </div>
+</div>
 
 <!-- Modal de confirmación reutilizable -->
-{% include "includes/modal_confirmacion.html" %}
+    {% include "includes/modal_confirmacion.html" %}
+    {% include "includes/modal_agregar_cargos.html" %}
+    {% endblock content %}
+
+    {% block java-script-extra %}
 
 <script>
 function abrirModalAgregar() {
@@ -122,3 +133,4 @@ function cerrarModalConfirmacion() {
     document.getElementById('modalEliminar').style.display = 'none';
 }
 </script>
+{% endblock java-script-extra %}
