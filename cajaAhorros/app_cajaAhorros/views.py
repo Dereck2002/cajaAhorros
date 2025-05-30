@@ -55,8 +55,8 @@ def socio_list(request):
         'cargos': cargos,
     })
 
-
 # Crear socio
+@login_required
 def crear_socio(request):
     if request.method == 'POST':
         form = SocioForm(request.POST, request.FILES)

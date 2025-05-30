@@ -4,72 +4,83 @@
 
     {% block content %} 
 
-    <div class="container mt-4"><h2 class="mb-3">Información Esencial del Usuario</h2><ul class="list-group"><li class="list-group-item"><strong>Autenticado:</strong>
-            {% if user.is_authenticated %}
+    <div class="container mt-4">
+        <h2 class="mb-3">Información Esencial del Usuario</h2>
+        <ul class="list-group">
+            <li class="list-group-item"><strong>Autenticado:</strong>
+                {% if user.is_authenticated %}
                 Sí <span class="badge bg-success ms-1">✔</span>
-            {% else %}
+                {% else %}
                 No <span class="badge bg-secondary ms-1">✘</span>
-            {% endif %}
-</li>
- 
-        {% if user.is_authenticated %}
-<li class="list-group-item"><strong>Usuario:</strong>
+                {% endif %}
+            </li>
+    
+            {% if user.is_authenticated %}
+            <li class="list-group-item"><strong>Usuario:</strong>
                 {{ user.username }}
-</li><li class="list-group-item"><strong>Nombre:</strong>
+            </li>
+            <li class="list-group-item"><strong>Nombre:</strong>
                 {% if user.get_full_name and user.get_full_name != user.username %}
-                    {{ user.get_full_name }}
+                {{ user.get_full_name }}
                 {% elif user.first_name or user.last_name %}
-                    {{ user.first_name }} {{ user.last_name }}
+                {{ user.first_name }} {{ user.last_name }}
                 {% else %}
-<span class="text-muted">(No especificado)</span>
+                <span class="text-muted">(No especificado)</span>
                 {% endif %}
-</li><li class="list-group-item"><strong>Email:</strong>
+            </li>
+            <li class="list-group-item"><strong>Email:</strong>
                 {% if user.email %}
-                    {{ user.email }}
+                {{ user.email }}
                 {% else %}
-<span class="text-muted">(No especificado)</span>
+                <span class="text-muted">(No especificado)</span>
                 {% endif %}
-</li><li class="list-group-item"><strong>Acceso Admin (Staff):</strong>
+            </li>
+            <li class="list-group-item"><strong>Acceso Admin (Staff):</strong>
                 {% if user.is_staff %}
-                    Sí <span class="badge bg-info text-dark ms-1">✔</span>
+                Sí <span class="badge bg-info text-dark ms-1">✔</span>
                 {% else %}
-                    No
+                No
                 {% endif %}
-</li>
-
-<li class="list-group-item"><strong>Acceso Super Admin (Staff):</strong>
+            </li>
+    
+            <li class="list-group-item"><strong>Acceso Super Admin (Staff):</strong>
                 {% if user.is_superuser %}
-                    Sí <span class="badge bg-info text-dark ms-1">✔</span>
+                Sí <span class="badge bg-info text-dark ms-1">✔</span>
                 {% else %}
-                    No
+                No
                 {% endif %}
-</li>
- 
-        {% else %}
-<li class="list-group-item">
+            </li>
+    
+            {% else %}
+            <li class="list-group-item">
                 El usuario actual es anónimo.
-</li>
-        {% endif %}
-
-    <hr>
-    <div class="container mt-4"  >
-    <a href="{% url 'crear_socio' %}">➕ Nuevo Socio</a>
+            </li>
+            {% endif %}
+    
+            <hr>
+            <div class="container mt-4">
 
     <!-- Botón para gestionar cargos -->
-    <button onclick="abrirModalCargo()" style="margin-top: 20px;">⚙️ Gestionar Cargos</button>
+<div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+  <a href="{% url 'crear_socio' %}" class="btn btn-success">
+  <i class="bi bi-person-plus"></i> Nuevo Socio
+</a>
 
-    <!-- Filtro por estado de aportación -->
-    <form method="get">
-        <label for="filtro">Filtrar por estado de aportación:</label>
-        <select name="filtro" id="filtro" onchange="this.form.submit()">
-            <option value="todos" {% if filtro == 'todos' %}selected{% endif %}>Todos</option>
-            <option value="al_dia" {% if filtro == 'al_dia' %}selected{% endif %}>Al día</option>
-            <option value="deudores" {% if filtro == 'deudores' %}selected{% endif %}>Deudores</option>
-        </select>
-    </form>
+  <button type="button" class="btn btn-secondary" onclick="abrirModalCargo()">
+    <i class="bi bi-gear"></i> Gestionar Cargos
+  </button>
 
-    <!-- Buscador -->
-    <input type="text" id="buscador" placeholder="Buscar..." onkeyup="filtrarTabla()" style="margin-top: 15px; padding: 5px; width: 200px;">
+  <form method="get" class="d-flex align-items-center mb-0">
+    <label for="filtro" class="me-2 mb-0">Filtrar por estado:</label>
+    <select name="filtro" id="filtro" onchange="this.form.submit()" class="form-select form-select-sm">
+      <option value="todos" {% if filtro == 'todos' %}selected{% endif %}>Todos</option>
+      <option value="al_dia" {% if filtro == 'al_dia' %}selected{% endif %}>Al día</option>
+      <option value="deudores" {% if filtro == 'deudores' %}selected{% endif %}>Deudores</option>
+    </select>
+  </form>
+
+  <input type="search" id="buscador" placeholder="Buscar..." onkeyup="filtrarTabla()" class="form-control form-control-sm" style="max-width: 200px;">
+</div>
 
     <!-- Tabla de socios -->
      <div class="table-responsive">
@@ -95,10 +106,19 @@
                     {% endif %}
                 </td>
                 <td>
-                    <a href="{% url 'detalle_socio' socio.id %}">🔍 Ver Detalle</a>
-                    <a href="{% url 'ver_aportaciones_socio' socio.id %}">👁 Ver</a>
-                    <a href="{% url 'editar_socio' socio.id %}">✏️ Editar</a>
-                    <a href="#" onclick="abrirModal('{{ socio.id }}', '{{ socio.nombre }} {{ socio.apellido }}', 'socio'); return false;">🗑 Eliminar</a>
+                    <a href="{% url 'detalle_socio' socio.id %}" class="btn btn-outline-primary btn-sm" title="Ver detalle">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    <a href="{% url 'ver_aportaciones_socio' socio.id %}" class="btn btn-outline-info btn-sm" title="Ver aportaciones">
+                        <i class="bi bi-wallet2"></i>
+                    </a>
+                    <a href="{% url 'editar_socio' socio.id %}" class="btn btn-outline-warning btn-sm" title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <button onclick="abrirModal('{{ socio.id }}', '{{ socio.nombre }} {{ socio.apellido }}', 'socio'); return false;"
+                        class="btn btn-outline-danger btn-sm" title="Eliminar">
+                        <i class="bi bi-trash"></i>
+                    </button>
                 </td>
             </tr>
             {% empty %}
