@@ -10,29 +10,26 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 
 
-# Listado de Socios
 @login_required
 def socio_list(request):
     filtro = request.GET.get('filtro', 'todos')
-    socios = Socio.objects.all()
+    socios = Socio.objects.filter(activo=True)  # 👈 Solo activos
     cargos = Cargo.objects.all()
     hoy = date.today().replace(day=1)
 
     def meses_faltantes(socio):
         movimientos = Movimiento.objects.filter(socio=socio, entrada__gt=0).order_by('fecha_movimiento')
         if not movimientos.exists():
-            return True  # Deudor si no tiene aportes
-
+            return True
         fechas_aportes = movimientos.dates('fecha_movimiento', 'month')
         meses_aporte_set = set((d.year, d.month) for d in fechas_aportes)
-
         inicio = movimientos.first().fecha_movimiento.replace(day=1)
         actual = inicio
         while actual <= hoy:
             if (actual.year, actual.month) not in meses_aporte_set:
-                return True  # Faltan aportes al menos un mes
+                return True
             actual += relativedelta(months=1)
-        return False  # Al día
+        return False
 
     socios_filtrados = []
     for socio in socios:
@@ -43,9 +40,8 @@ def socio_list(request):
             socios_filtrados.append(socio)
         elif filtro == 'todos':
             socios_filtrados.append(socio)
-
-    # Paginación
-    paginator = Paginator(socios_filtrados, 10) 
+#paginacion
+    paginator = Paginator(socios_filtrados, 10)
     page = request.GET.get('page')
     socios_paginados = paginator.get_page(page)
 
@@ -86,7 +82,8 @@ def editar_socio(request, pk):
 def eliminar_socio(request, pk):
     socio = get_object_or_404(Socio, pk=pk)
     if request.method == 'POST':
-        socio.delete()
+        socio.activo = False
+        socio.save()
         return redirect('socio_list')
     return render(request, 'eliminar_socio.html', {'socio': socio})
 

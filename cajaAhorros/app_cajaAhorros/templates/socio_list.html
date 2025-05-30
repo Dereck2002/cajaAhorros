@@ -115,10 +115,12 @@
                     <a href="{% url 'editar_socio' socio.id %}" class="btn btn-outline-warning btn-sm" title="Editar">
                         <i class="bi bi-pencil"></i>
                     </a>
-                    <button onclick="abrirModal('{{ socio.id }}', '{{ socio.nombre }} {{ socio.apellido }}', 'socio'); return false;"
-                        class="btn btn-outline-danger btn-sm" title="Eliminar">
-                        <i class="bi bi-trash"></i>
-                    </button>
+                   <form method="post" action="{% url 'eliminar_socio' socio.id %}" style="display:inline;">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-outline-danger btn-sm" title="Desactivar">
+    <i class="bi bi-trash"></i>
+  </button>
+</form>
                 </td>
             </tr>
             {% empty %}

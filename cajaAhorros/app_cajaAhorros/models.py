@@ -15,6 +15,7 @@ class Socio(models.Model):
     fecha_nacimiento = models.DateField()
     foto = models.ImageField(upload_to='fotos_socios/', blank=True, null=True)
     fecha_ingreso = models.DateField()
+    activo = models.BooleanField(default=True) 
 
     def __str__(self):
         return f"{self.nombre} {self.apellido} ({self.cedula})"
