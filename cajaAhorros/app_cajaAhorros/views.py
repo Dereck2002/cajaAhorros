@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Sum, Q
-from .models import Movimiento, Socio, Cargo
-from .forms import SocioForm
+from .models import Movimiento, Socio, Cargo, Prestamo
+from .forms import SocioForm, PrestamoForm
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 from django.core.paginator import Paginator
@@ -216,3 +216,39 @@ def eliminar_cargo(request, id):
     cargo = get_object_or_404(Cargo, id=id)
     cargo.delete()
     return redirect('socio_list')
+
+def prestamo_list(request):
+    prestamos = Prestamo.objects.all()
+    return render(request, 'prestamo_list.html', {'prestamos': prestamos})
+
+# Crear préstamo
+def crear_o_editar_prestamo(request, pk=None):
+    prestamo = get_object_or_404(Prestamo, pk=pk) if pk else None
+
+    if request.method == 'POST':
+        form = PrestamoForm(request.POST, instance=prestamo)
+        if form.is_valid():
+            prestamo = form.save(commit=False)
+            if not pk:
+                prestamo.estado = 'Solicitado'
+                prestamo.cantidad_aprobada = prestamo.cantidad_solicitada
+                prestamo.cuota = (prestamo.cantidad_solicitada * prestamo.interes) / prestamo.plazo
+            else:
+                prestamo.estado = 'Pendiente'
+            prestamo.save()
+            return redirect('prestamo_list')
+    else:
+        form = PrestamoForm(instance=prestamo)
+
+    return render(request, 'crear_editar_prestamo.html', {'form': form})
+
+
+from django.views.decorators.http import require_POST
+
+#aprovar prestamo
+@require_POST
+def aprobar_prestamo(request, pk):
+    prestamo = get_object_or_404(Prestamo, pk=pk)
+    prestamo.estado = 'Aprobado'
+    prestamo.save()
+    return redirect('prestamo_list')

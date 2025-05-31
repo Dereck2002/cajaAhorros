@@ -12,7 +12,11 @@ class Socio(models.Model):
     cedula = models.CharField(max_length=15, unique=True)
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
+    telefono = models.CharField(max_length=15, blank=True, null=True)
+    direccion = models.CharField(max_length=200, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
     fecha_nacimiento = models.DateField()
+    ocupacion = models.CharField(max_length=100, blank=True, null=True)
     foto = models.ImageField(upload_to='fotos_socios/', blank=True, null=True)
     fecha_ingreso = models.DateField()
     activo = models.BooleanField(default=True) 
@@ -52,22 +56,48 @@ class Directiva(models.Model):
         return f"{self.socio.nombre} - {self.cargo.nombre_cargo}"
 
 
+class Configuracion(models.Model):
+    ruc = models.CharField(max_length=20, unique=True)
+    nombre_empresa = models.CharField(max_length=100)
+    direccion = models.CharField(max_length=200) 
+    telefono = models.CharField(max_length=15)
+    email = models.EmailField()
+    logo = models.ImageField(upload_to='logos/', blank=True, null=True)
+    ciudad = models.CharField(max_length=100)
+    tasa_interes = models.DecimalField(max_digits=5, decimal_places=2)   
+    plazo_maximo = models.IntegerField()
+
+    def __str__(self):
+        return self.nombre_empresa
+    
+
 class Prestamo(models.Model):
+    ESTADOS = [
+        ('Solicitado', 'Solicitado'),
+        ('Pendiente', 'Pendiente'),
+        ('Aprobado', 'Aprobado'),
+    ]
+
     socio = models.ForeignKey(Socio, on_delete=models.CASCADE, related_name='prestamos')
     garante = models.ForeignKey(Socio, on_delete=models.SET_NULL, null=True, blank=True, related_name='garante_prestamos')
-    fecha_prestamo = models.DateField()
+    fecha_prestamo = models.DateField(null=True, blank=True)
     cantidad_solicitada = models.DecimalField(max_digits=12, decimal_places=2)
     cantidad_aprobada = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     plazo = models.PositiveIntegerField(help_text="Plazo en meses")
-    interes = models.DecimalField(max_digits=5, decimal_places=2, help_text="Interés porcentual")
+    interes = models.DecimalField(max_digits=5, decimal_places=2)
+    cuota = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='Solicitado')
+    nota = models.TextField(blank=True, null=True)
     fecha_aprobacion = models.DateField(blank=True, null=True)
-    cuota = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
-    estado_prestamo = models.BooleanField(default=True)
-    nota_prestamo = models.TextField(blank=True, null=True)
 
-    def __str__(self):
-        return f"Préstamo {self.pk} - Socio: {self.socio.nombre}"
-
+    def save(self, *args, **kwargs):
+        # Calcula la cuota automáticamente al guardar
+        self.cuota = (self.cantidad_solicitada * (1 + self.interes / 100)) / self.plazo
+        # Si no hay cantidad aprobada, poner igual a solicitada
+        if not self.cantidad_aprobada:
+            self.cantidad_aprobada = self.cantidad_solicitada
+        super().save(*args, **kwargs)
+    
 
 class PagoPrestamo(models.Model):
     prestamo = models.ForeignKey(Prestamo, on_delete=models.CASCADE, related_name='pagos')
@@ -79,6 +109,7 @@ class PagoPrestamo(models.Model):
     valor_cuota_pago = models.DecimalField(max_digits=12, decimal_places=2)
     estado = models.BooleanField(default=True)
     fecha_pago = models.DateField()
+    fecha_a_pagar = models.DateField(blank=True, null=True)
 
     def __str__(self):
-        return f"Pago {self.pk} - Préstamo {self.prestamo.pk} - Cuota {self.cuota_pago}"
+        return f"Pago {self.pk} - Prestamo {self.prestamo.pk} - Cuota {self.cuota_pago}"  

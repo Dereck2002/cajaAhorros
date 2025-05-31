@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <h2>Lista de Préstamos</h2>
+    <a href="{% url 'prestamo_create' %}" class="btn btn-success mb-3">
+        <i class="bi bi-plus-circle"></i> Nuevo Préstamo
+    </a>
+
+    <table class="table table-bordered">
+        <thead class="table-light">
+            <tr>
+                <th>Socio</th>
+                <th>Garantía</th>
+                <th>Cantidad Solicitada</th>
+                <th>Plazo (meses)</th>
+                <th>Interés (%)</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for prestamo in prestamos %}
+            <tr>
+                <td>{{ prestamo.socio }}</td>
+                <td>{{ prestamo.garante }}</td>
+                <td>{{ prestamo.cantidad_solicitada }}</td>
+                <td>{{ prestamo.plazo }}</td>
+                <td>{{ prestamo.interes }}</td>
+                <td>{{ prestamo.estado }}</td>
+                <td>
+                    <!-- Botón editar -->
+                    <a href="{% url 'prestamo_edit' prestamo.pk %}" class="btn btn-sm btn-warning" title="Editar">
+                        <i class="bi bi-pencil-square"></i>
+                    </a>
+
+                    <!-- Botón aprobar -->
+                    {% if prestamo.estado == "Pendiente" %}
+                    <form action="{% url 'aprobar_prestamo' prestamo.pk %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-success" title="Aprobar" onclick="return confirm('¿Estás seguro de aprobar este préstamo?');">
+                            <i class="bi bi-check-circle"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="7" class="text-center">No hay préstamos registrados.</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

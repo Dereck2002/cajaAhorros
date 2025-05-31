@@ -38,6 +38,10 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('dashboard/', views.socio_list, name='dashboard'),
     path('accounts/profile/', views.socio_list, name='profile'),
+    path('prestamos/', views.prestamo_list, name='prestamo_list'),
+    path('prestamos/nuevo/', views.crear_o_editar_prestamo, name='prestamo_create'),
+    path('prestamos/editar/<int:pk>/', views.crear_o_editar_prestamo, name='prestamo_edit'),
+    path('prestamos/aprobar/<int:pk>/', views.aprobar_prestamo, name='aprobar_prestamo'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
