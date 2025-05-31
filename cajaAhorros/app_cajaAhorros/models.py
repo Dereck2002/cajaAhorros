@@ -76,6 +76,7 @@ class Prestamo(models.Model):
         ('Solicitado', 'Solicitado'),
         ('Pendiente', 'Pendiente'),
         ('Aprobado', 'Aprobado'),
+        ('Rechazado', 'Rechazado'),
     ]
 
     socio = models.ForeignKey(Socio, on_delete=models.CASCADE, related_name='prestamos')

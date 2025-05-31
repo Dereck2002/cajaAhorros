@@ -231,8 +231,7 @@ def crear_o_editar_prestamo(request, pk=None):
             prestamo = form.save(commit=False)
             if not pk:
                 prestamo.estado = 'Solicitado'
-                prestamo.cantidad_aprobada = prestamo.cantidad_solicitada
-                prestamo.cuota = (prestamo.cantidad_solicitada * prestamo.interes) / prestamo.plazo
+                # cantidad_aprobada y cuota los maneja el form o el modelo
             else:
                 prestamo.estado = 'Pendiente'
             prestamo.save()
@@ -243,12 +242,18 @@ def crear_o_editar_prestamo(request, pk=None):
     return render(request, 'crear_editar_prestamo.html', {'form': form})
 
 
-from django.views.decorators.http import require_POST
-
 #aprovar prestamo
 @require_POST
 def aprobar_prestamo(request, pk):
     prestamo = get_object_or_404(Prestamo, pk=pk)
     prestamo.estado = 'Aprobado'
+    prestamo.save()
+    return redirect('prestamo_list') 
+
+#rechazar prestamo
+@require_POST
+def rechazar_prestamo(request, pk):
+    prestamo = get_object_or_404(Prestamo, pk=pk)
+    prestamo.estado = 'Rechazado'
     prestamo.save()
     return redirect('prestamo_list')

@@ -42,6 +42,7 @@ urlpatterns = [
     path('prestamos/nuevo/', views.crear_o_editar_prestamo, name='prestamo_create'),
     path('prestamos/editar/<int:pk>/', views.crear_o_editar_prestamo, name='prestamo_edit'),
     path('prestamos/aprobar/<int:pk>/', views.aprobar_prestamo, name='aprobar_prestamo'),
+    path('prestamos/<int:pk>/rechazar/', views.rechazar_prestamo, name='prestamo_rechazado'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

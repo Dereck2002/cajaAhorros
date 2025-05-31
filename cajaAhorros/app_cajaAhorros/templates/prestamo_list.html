@@ -43,6 +43,14 @@
                             <i class="bi bi-check-circle"></i>
                         </button>
                     </form>
+
+                    <form method="POST" action="{% url 'prestamo_rechazado' prestamo.pk %}" style="display:inline;"
+                        onsubmit="return confirm('¿Estás seguro de rechazar este préstamo?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-sm" title="Rechazar">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </form>
                     {% endif %}
                 </td>
             </tr>
