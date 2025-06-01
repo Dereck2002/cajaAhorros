@@ -232,13 +232,20 @@ def crear_o_editar_prestamo(request, pk=None):
             prestamo = form.save(commit=False)
             if not pk:
                 prestamo.estado = 'Solicitado'
-                # cantidad_aprobada y cuota los maneja el form o el modelo
             else:
                 prestamo.estado = 'Pendiente'
+
+            # Vaciar cuota para forzar recálculo en el modelo
+            prestamo.cuota = None
+
             prestamo.save()
             return redirect('prestamo_list')
     else:
         form = PrestamoForm(instance=prestamo)
+
+        # 👇 Vaciar cuota en el formulario al editar para que se vea vacío
+        if prestamo:
+            form.initial['cuota'] = ''
 
     return render(request, 'prestamo/crear_editar_prestamo.html', {'form': form})
 
@@ -289,17 +296,37 @@ def generar_amortizacion(prestamo):
     if prestamo.estado == 'Aprobado' and not prestamo.pagos.exists():
         saldo = prestamo.cantidad_aprobada
         cuota = prestamo.cuota
+
+        # Si la cuota no está calculada, la calculamos aquí
+        if cuota is None:
+            tasa_mensual = (prestamo.interes / 100) / 12
+
+            if tasa_mensual == 0:
+                cuota = prestamo.cantidad_aprobada / prestamo.plazo
+            else:
+                # Fórmula francesa: Cuota fija mensual
+                cuota = prestamo.cantidad_aprobada * (
+                    tasa_mensual * (1 + tasa_mensual) ** prestamo.plazo
+                ) / ((1 + tasa_mensual) ** prestamo.plazo - 1)
+
+            # Guardamos la cuota en el préstamo
+            prestamo.cuota = round(cuota, 2)
+            prestamo.save()
+
+        else:
+            tasa_mensual = (prestamo.interes / 100) / 12
+
         fecha = prestamo.fecha_aprobacion or timezone.now().date()
 
         for i in range(prestamo.plazo):
-            interes = saldo * (prestamo.interes / 100) / prestamo.plazo
+            interes = saldo * tasa_mensual
             capital = cuota - interes
             saldo -= capital
 
             PagoPrestamo.objects.create(
                 prestamo=prestamo,
                 cuota_pago=i + 1,
-                saldo_pago=round(saldo, 2),
+                saldo_pago=round(saldo if saldo > 0 else 0, 2),
                 capital_pago=round(capital, 2),
                 interes_pago=round(interes, 2),
                 plazo_pago=prestamo.plazo - i,

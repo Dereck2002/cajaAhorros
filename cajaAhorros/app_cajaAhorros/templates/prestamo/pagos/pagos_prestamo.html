@@ -1,20 +1,27 @@
 {% extends "base.html" %}
 
 {% block content %}
-
 {% block title %}
-<h2>Tabla de Amortización - Préstamo #{{ prestamo.id }}</h2>
+<h2 class="mb-4">Tabla de Amortización - Préstamo #{{ prestamo.id }}</h2>
 {% endblock title %}
+
+<div class="mb-3">
+    <strong>Solicitante:</strong> {{ prestamo.socio }}<br>
+    <strong>Fecha del Crédito:</strong> {{ prestamo.fecha_aprobacion|date:"d/m/Y" }}<br>
+    <strong>Plazo:</strong> {{ prestamo.plazo }} meses<br>
+    <strong>Monto Aprobado:</strong> ${{ prestamo.cantidad_aprobada }}<br>
+    <strong>Interés:</strong> {{ prestamo.interes }}%
+</div>
 
 <table class="table table-bordered">
     <thead class="table-light">
         <tr>
-            <th>Fecha a pagar</th>
-            <th>Cuota</th>
+            <th>Nº Cuota</th>
+            <th>Saldo</th>
             <th>Capital</th>
             <th>Interés</th>
-            <th>Saldo</th>
             <th>Valor Cuota</th>
+            <th>Fecha a Pagar</th>
             <th>Fecha de Pago</th>
             <th>Estado</th>
             <th>Acciones</th>
@@ -23,15 +30,15 @@
     <tbody>
         {% for pago in pagos %}
         <tr>
-            <td>{{ pago.fecha_a_pagar }}</td>
             <td>{{ pago.cuota_pago }}</td>
-            <td>{{ pago.capital_pago }}</td>
-            <td>{{ pago.interes_pago }}</td>
-            <td>{{ pago.saldo_pago }}</td>
-            <td>{{ pago.valor_cuota_pago }}</td>
+            <td>${{ pago.saldo_pago }}</td>
+            <td>${{ pago.capital_pago }}</td>
+            <td>${{ pago.interes_pago }}</td>
+            <td>${{ pago.valor_cuota_pago }}</td>
+            <td>{{ pago.fecha_a_pagar|date:"d/m/Y" }}</td>
             <td>
                 {% if pago.estado %}
-                    {{ pago.fecha_pago }}
+                    {{ pago.fecha_pago|date:"d/m/Y" }}
                 {% else %}
                     <span class="text-muted">Pendiente</span>
                 {% endif %}
@@ -45,13 +52,12 @@
             </td>
             <td>
                 {% if not pago.estado %}
-                <form method="POST" action="{% url 'registrar_pago' pago.id %}" style="display: inline;">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-sm btn-primary" title="Registrar Pago">
-        <i class="bi bi-cash-stack"></i> Registrar Pago
-    </button>
-</form>
-
+                <form method="POST" action="{% url 'registrar_pago' pago.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-primary" title="Registrar Pago">
+                        <i class="bi bi-cash-stack"></i> Registrar Pago
+                    </button>
+                </form>
                 {% else %}
                 <span class="text-muted">-</span>
                 {% endif %}
