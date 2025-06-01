@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}
+<h2>Tabla de Amortización - Préstamo #{{ prestamo.id }}</h2>
+{% endblock title %}
+
+{% block content %}
+<table class="table table-bordered">
+    <thead class="table-light">
+        <tr>
+            <th>Fecha a pagar</th>
+            <th>Cuota</th>
+            <th>Capital</th>
+            <th>Interés</th>
+            <th>Saldo</th>
+            <th>Valor Cuota</th>
+            <th>Fecha de Pago</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for pago in pagos %}
+        <tr>
+            <td>{{ pago.fecha_a_pagar }}</td>
+            <td>{{ pago.cuota_pago }}</td>
+            <td>{{ pago.capital_pago }}</td>
+            <td>{{ pago.interes_pago }}</td>
+            <td>{{ pago.saldo_pago }}</td>
+            <td>{{ pago.valor_cuota_pago }}</td>
+            <td>
+                {% if pago.estado %}
+                    {{ pago.fecha_pago }}
+                {% else %}
+                    <span class="text-muted">Pendiente</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if pago.estado %}
+                    <span class="badge bg-success">Pagado</span>
+                {% else %}
+                    <span class="badge bg-danger">Por pagar</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if not pago.estado %}
+                <a href="{% url 'registrar_pago' pago.id %}" class="btn btn-sm btn-primary" title="Registrar Pago">
+                    <i class="bi bi-cash-stack"></i> Registrar Pago
+                </a>
+                {% else %}
+                <span class="text-muted">-</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock content %}

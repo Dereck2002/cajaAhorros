@@ -1,13 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.db.models import Sum, Q
-from .models import Movimiento, Socio, Cargo, Prestamo
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
+from .models import Movimiento, Socio, Cargo, Prestamo, PagoPrestamo
 from .forms import SocioForm, PrestamoForm
-from datetime import date, datetime
+from datetime import date
 from dateutil.relativedelta import relativedelta
 from django.core.paginator import Paginator
 from decimal import Decimal
-from django.views.decorators.http import require_POST
-from django.contrib.auth.decorators import login_required
+from django.utils import timezone
 
 
 @login_required
@@ -247,8 +248,11 @@ def crear_o_editar_prestamo(request, pk=None):
 def aprobar_prestamo(request, pk):
     prestamo = get_object_or_404(Prestamo, pk=pk)
     prestamo.estado = 'Aprobado'
+    prestamo.fecha_aprobacion = date.today()
     prestamo.save()
-    return redirect('prestamo_list') 
+    generar_amortizacion(prestamo)
+    return redirect('prestamo_list')
+
 
 #rechazar prestamo
 @require_POST
@@ -257,3 +261,49 @@ def rechazar_prestamo(request, pk):
     prestamo.estado = 'Rechazado'
     prestamo.save()
     return redirect('prestamo_list')
+
+
+#pagos prestamos
+@login_required
+def pagos_prestamo(request, prestamo_id):
+    prestamo = get_object_or_404(Prestamo, id=prestamo_id)
+    pagos = PagoPrestamo.objects.filter(prestamo=prestamo).order_by('cuota_pago')
+
+    return render(request, 'pagos/pagos_prestamo.html', {
+        'prestamo': prestamo,
+        'pagos': pagos,
+    })
+
+#registros de pagos
+@require_POST
+@login_required
+def registrar_pago(request, pago_id):
+    pago = get_object_or_404(PagoPrestamo, id=pago_id)
+    pago.estado = True
+    pago.fecha_pago = timezone.now().date()
+    pago.save()
+    return redirect('pagos_prestamo', prestamo_id=pago.prestamo.id)
+
+#tabla amortizacion
+def generar_amortizacion(prestamo):
+    if prestamo.estado == 'Aprobado' and not prestamo.pagos.exists():
+        saldo = prestamo.cantidad_aprobada
+        cuota = prestamo.cuota
+        fecha = prestamo.fecha_aprobacion or timezone.now().date()
+
+        for i in range(prestamo.plazo):
+            interes = saldo * (prestamo.interes / 100) / prestamo.plazo
+            capital = cuota - interes
+            saldo -= capital
+
+            PagoPrestamo.objects.create(
+                prestamo=prestamo,
+                cuota_pago=i + 1,
+                saldo_pago=round(saldo, 2),
+                capital_pago=round(capital, 2),
+                interes_pago=round(interes, 2),
+                plazo_pago=prestamo.plazo - i,
+                valor_cuota_pago=round(cuota, 2),
+                estado=False,
+                fecha_a_pagar=fecha + relativedelta(months=i)
+            )

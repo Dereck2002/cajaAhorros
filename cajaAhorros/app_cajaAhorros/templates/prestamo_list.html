@@ -29,30 +29,38 @@
                 <td>{{ prestamo.plazo }}</td>
                 <td>{{ prestamo.interes }}</td>
                 <td>{{ prestamo.estado }}</td>
-                <td>
-                    <!-- Botón editar -->
-                    <a href="{% url 'prestamo_edit' prestamo.pk %}" class="btn btn-sm btn-warning" title="Editar">
-                        <i class="bi bi-pencil-square"></i>
-                    </a>
+<td>
+    <!-- Botón editar -->
+    <a href="{% url 'prestamo_edit' prestamo.pk %}" class="btn btn-sm btn-warning" title="Editar">
+        <i class="bi bi-pencil-square"></i>
+    </a>
 
-                    <!-- Botón aprobar -->
-                    {% if prestamo.estado == "Pendiente" %}
-                    <form action="{% url 'aprobar_prestamo' prestamo.pk %}" method="post" style="display:inline;">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-sm btn-success" title="Aprobar" onclick="return confirm('¿Estás seguro de aprobar este préstamo?');">
-                            <i class="bi bi-check-circle"></i>
-                        </button>
-                    </form>
+    <!-- Botón ver pagos -->
+    {% if prestamo.estado == "Aprobado" %}
+    <a href="{% url 'pagos_prestamo' prestamo.pk %}" class="btn btn-sm btn-info" title="Ver pagos">
+        <i class="bi bi-eye"></i>
+    </a>
+    {% endif %}
 
-                    <form method="POST" action="{% url 'prestamo_rechazado' prestamo.pk %}" style="display:inline;"
-                        onsubmit="return confirm('¿Estás seguro de rechazar este préstamo?');">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-danger btn-sm" title="Rechazar">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
-                    </form>
-                    {% endif %}
-                </td>
+    <!-- Botón aprobar -->
+    {% if prestamo.estado == "Pendiente" %}
+    <form action="{% url 'aprobar_prestamo' prestamo.pk %}" method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-success" title="Aprobar" onclick="return confirm('¿Estás seguro de aprobar este préstamo?');">
+            <i class="bi bi-check-circle"></i>
+        </button>
+    </form>
+
+    <!-- Botón rechazar -->
+    <form method="POST" action="{% url 'prestamo_rechazado' prestamo.pk %}" style="display:inline;" onsubmit="return confirm('¿Estás seguro de rechazar este préstamo?');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger btn-sm" title="Rechazar">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </form>
+    {% endif %}
+</td>
+
             </tr>
         {% empty %}
             <tr>

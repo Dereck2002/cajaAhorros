@@ -92,9 +92,7 @@ class Prestamo(models.Model):
     fecha_aprobacion = models.DateField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        # Calcula la cuota automáticamente al guardar
         self.cuota = (self.cantidad_solicitada * (1 + self.interes / 100)) / self.plazo
-        # Si no hay cantidad aprobada, poner igual a solicitada
         if not self.cantidad_aprobada:
             self.cantidad_aprobada = self.cantidad_solicitada
         super().save(*args, **kwargs)
@@ -109,7 +107,7 @@ class PagoPrestamo(models.Model):
     plazo_pago = models.PositiveIntegerField(help_text="Plazo restante en meses")
     valor_cuota_pago = models.DecimalField(max_digits=12, decimal_places=2)
     estado = models.BooleanField(default=True)
-    fecha_pago = models.DateField()
+    fecha_pago = models.DateField(null=True, blank=True)
     fecha_a_pagar = models.DateField(blank=True, null=True)
 
     def __str__(self):
