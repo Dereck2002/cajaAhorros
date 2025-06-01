@@ -45,9 +45,13 @@
             </td>
             <td>
                 {% if not pago.estado %}
-                <a href="{% url 'registrar_pago' pago.id %}" class="btn btn-sm btn-primary" title="Registrar Pago">
-                    <i class="bi bi-cash-stack"></i> Registrar Pago
-                </a>
+                <form method="POST" action="{% url 'registrar_pago' pago.id %}" style="display: inline;">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-sm btn-primary" title="Registrar Pago">
+        <i class="bi bi-cash-stack"></i> Registrar Pago
+    </button>
+</form>
+
                 {% else %}
                 <span class="text-muted">-</span>
                 {% endif %}

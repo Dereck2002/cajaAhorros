@@ -46,7 +46,7 @@ def socio_list(request):
     page = request.GET.get('page')
     socios_paginados = paginator.get_page(page)
 
-    return render(request, 'socio_list.html', {
+    return render(request, 'socios/socio_list.html', {
         'socios': socios_paginados,
         'filtro': filtro,
         'cargos': cargos,
@@ -63,7 +63,7 @@ def crear_socio(request):
     else:
         form = SocioForm()
     
-    return render(request, 'crear_socio.html', {'form': form})
+    return render(request, 'socios/crear_socio.html', {'form': form})
 
 
 # Editar socio
@@ -77,7 +77,7 @@ def editar_socio(request, pk):
     else:
         form = SocioForm(instance=socio)
 
-    return render(request, 'crear_socio.html', {'form': form})
+    return render(request, 'socios/crear_socio.html', {'form': form})
 
 # Eliminar socio
 def eliminar_socio(request, pk):
@@ -86,7 +86,7 @@ def eliminar_socio(request, pk):
         socio.activo = False
         socio.save()
         return redirect('socio_list')
-    return render(request, 'eliminar_socio.html', {'socio': socio})
+    return render(request, 'socios/eliminar_socio.html', {'socio': socio})
 
 
 # Calcular totales por socio
@@ -113,7 +113,7 @@ def ver_aportaciones_socio(request, socio_id):
                 meses_faltantes.append(actual.strftime('%B %Y'))
             actual += relativedelta(months=1)
 
-    return render(request, 'ver_aportaciones_socio.html', {
+    return render(request, 'aportes/ver_aportaciones_socio.html', {
         'socio': socio,
         'movimientos': movimientos,
         'total_aportes': total_aportes,
@@ -159,7 +159,7 @@ def detalle_socio(request, pk):
         (hoy.month, hoy.day) < (socio.fecha_nacimiento.month, socio.fecha_nacimiento.day)
     )
 
-    return render(request, 'detalle.html', {'socio': socio, 'edad': edad})
+    return render(request, 'socios/detalle.html', {'socio': socio, 'edad': edad})
 
 
 # Editar aporte
@@ -220,7 +220,7 @@ def eliminar_cargo(request, id):
 
 def prestamo_list(request):
     prestamos = Prestamo.objects.all()
-    return render(request, 'prestamo_list.html', {'prestamos': prestamos})
+    return render(request, 'prestamo/prestamo_list.html', {'prestamos': prestamos})
 
 # Crear préstamo
 def crear_o_editar_prestamo(request, pk=None):
@@ -240,7 +240,7 @@ def crear_o_editar_prestamo(request, pk=None):
     else:
         form = PrestamoForm(instance=prestamo)
 
-    return render(request, 'crear_editar_prestamo.html', {'form': form})
+    return render(request, 'prestamo/crear_editar_prestamo.html', {'form': form})
 
 
 #aprovar prestamo
@@ -269,7 +269,7 @@ def pagos_prestamo(request, prestamo_id):
     prestamo = get_object_or_404(Prestamo, id=prestamo_id)
     pagos = PagoPrestamo.objects.filter(prestamo=prestamo).order_by('cuota_pago')
 
-    return render(request, 'pagos/pagos_prestamo.html', {
+    return render(request, 'prestamo/pagos/pagos_prestamo.html', {
         'prestamo': prestamo,
         'pagos': pagos,
     })
