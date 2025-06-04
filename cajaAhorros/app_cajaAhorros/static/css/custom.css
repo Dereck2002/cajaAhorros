@@ -1,54 +1,70 @@
-/* Estilo general */
+/* General */
 body {
-    background-color: #f8f9fa;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #333;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+    background-color: #f5f5f5;
+    color: #212529;
 }
 
-/* Contenedor principal */
+/* Contenido principal */
 .main-content {
-    background-color: #ffffff;
+    background-color: #fff;
     padding: 2rem;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 /* Navbar */
-.navbar-brand {
-    font-weight: 600;
-    letter-spacing: 0.5px;
+.navbar {
+    background-color: #121212 !important;
+}
+
+.navbar-brand i {
+    color: #28a745; /* verde */
 }
 
 .nav-link {
-    transition: all 0.3s ease;
+    transition: 0.3s;
 }
 
 .nav-link:hover {
-    color: #ffc107 !important;
+    color: #ff6347 !important; /* tomate */
 }
 
 /* Footer */
 .footer {
-    color: #6c757d;
-    font-size: 0.9rem;
+    background-color: #121212;
+    color: #ccc;
 }
 
 /* Botones personalizados */
 .btn-primary {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
-    transition: background-color 0.3s ease;
+    background-color: #28a745;
+    border-color: #28a745;
 }
 
 .btn-primary:hover {
-    background-color: #0b5ed7;
-    border-color: #0a58ca;
+    background-color: #218838;
+    border-color: #1e7e34;
 }
 
-/* Utilidades */
+.btn-danger {
+    background-color: #ff6347;
+    border-color: #ff6347;
+}
+
+.btn-danger:hover {
+    background-color: #e5533d;
+    border-color: #e5533d;
+}
+
+/* Tarjetas */
+.card {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Sombra suave */
 .shadow-sm {
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
 }

@@ -4,61 +4,7 @@
 
     {% block title %}<h1>Listado de Socios</h1>{% endblock title %}
 
-    <div class="container mt-4">
-        <h2 class="mb-3">Información Esencial del Usuario</h2>
-        <ul class="list-group">
-            <li class="list-group-item"><strong>Autenticado:</strong>
-                {% if user.is_authenticated %}
-                Sí <span class="badge bg-success ms-1">✔</span>
-                {% else %}
-                No <span class="badge bg-secondary ms-1">✘</span>
-                {% endif %}
-            </li>
-    
-            {% if user.is_authenticated %}
-            <li class="list-group-item"><strong>Usuario:</strong>
-                {{ user.username }}
-            </li>
-            <li class="list-group-item"><strong>Nombre:</strong>
-                {% if user.get_full_name and user.get_full_name != user.username %}
-                {{ user.get_full_name }}
-                {% elif user.first_name or user.last_name %}
-                {{ user.first_name }} {{ user.last_name }}
-                {% else %}
-                <span class="text-muted">(No especificado)</span>
-                {% endif %}
-            </li>
-            <li class="list-group-item"><strong>Email:</strong>
-                {% if user.email %}
-                {{ user.email }}
-                {% else %}
-                <span class="text-muted">(No especificado)</span>
-                {% endif %}
-            </li>
-            <li class="list-group-item"><strong>Acceso Admin (Staff):</strong>
-                {% if user.is_staff %}
-                Sí <span class="badge bg-info text-dark ms-1">✔</span>
-                {% else %}
-                No
-                {% endif %}
-            </li>
-    
-            <li class="list-group-item"><strong>Acceso Super Admin (Staff):</strong>
-                {% if user.is_superuser %}
-                Sí <span class="badge bg-info text-dark ms-1">✔</span>
-                {% else %}
-                No
-                {% endif %}
-            </li>
-    
-            {% else %}
-            <li class="list-group-item">
-                El usuario actual es anónimo.
-            </li>
-            {% endif %}
-    
-            <hr>
-            <div class="container mt-4">
+   
 
     <!-- Botón para gestionar cargos -->
 <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
