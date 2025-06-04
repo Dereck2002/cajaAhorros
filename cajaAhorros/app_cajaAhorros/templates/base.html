@@ -12,49 +12,65 @@
 </head>
 <body class="d-flex flex-column min-vh-100 bg-light text-dark">
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-        <div class="container">
-            <a class="navbar-brand fw-bold text-white" href="{% url 'socio_list' %}">
-                <i class="bi bi-piggy-bank-fill me-2 text-success"></i> Caja de Ahorro y Crédito Nantar
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{% url 'socio_list' %}">Inicio</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{% url 'prestamo_list' %}">Préstamos</a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav ms-auto">
-                    {% if user.is_authenticated %}
-                    <li class="nav-item">
-                        <span class="nav-link text-white">Hola, {{ user.username }}!</span>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="/accounts/logout/">Cerrar sesión</a>
-                    </li>
-                    {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="/accounts/login/">Iniciar sesión</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="/accounts/signup/">Registrarse</a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <div class="container-fluid">
+        <div class="row min-vh-100">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-dark sidebar collapse show p-0">
+                <div class="position-sticky">
+                    <div class="sidebar-sticky pt-3 text-white">
+                        <div class="px-3 mb-4 mt-3 text-center">
+                            <h5><i class="bi bi-piggy-bank-fill text-success me-2" ></i>Caja Nantar</h5>
+                        </div>
+                        <ul class="nav flex-column px-2">
+                            <li class="nav-item mb-2">
+                                <a class="nav-link text-white {% if request.path == '/socios/' %}active{% endif %}" href="{% url 'socio_list' %}">
+                                    <i class="bi bi-house-door-fill me-2"></i> Socios
+                                </a>
+                            </li>
+                            <li class="nav-item mb-2">
+                                <a class="nav-link text-white {% if request.path == '/prestamos/' %}active{% endif %}" href="{% url 'prestamo_list' %}">
+                                    <i class="bi bi-cash-stack me-2"></i> Préstamos
+                                </a>
+                            </li>
 
-    <!-- Contenido principal -->
-    <main class="main-content container my-5">
-        {% block content %}{% endblock content %}
-    </main>
+                        </ul>
+                        <hr class="text-white">
+                        <ul class="nav flex-column px-2">
+                            {% if user.is_authenticated %}
+                            <li class="nav-item">
+                                <span class="nav-link text-white">
+                                    <i class="bi bi-person-circle me-2"></i> Hola, {{ user.username }}
+                                </span>
+                            </li>
+                            
+                            <li class="nav-item">
+                                <a class="nav-link text-white" href="/accounts/logout/">
+                                    <i class="bi bi-box-arrow-right me-2"></i> Cerrar sesión
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="nav-item">
+                                <a class="nav-link text-white" href="/accounts/login/">
+                                    <i class="bi bi-box-arrow-in-right me-2"></i> Iniciar sesión
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-white" href="/accounts/signup/">
+                                    <i class="bi bi-person-plus-fill me-2"></i> Registrarse
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Contenido principal -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+                {% block content %}{% endblock content %}
+            </main>
+        </div>
+    </div>
 
     <!-- Footer -->
     <footer class="footer bg-dark text-white text-center py-3 mt-auto">

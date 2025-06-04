@@ -1,5 +1,5 @@
 from django import forms
-from .models import Socio, Prestamo
+from .models import Socio, Prestamo, Configuracion
 
 class SocioForm(forms.ModelForm):
     class Meta:
