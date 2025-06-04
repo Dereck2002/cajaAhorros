@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'app_cajaAhorros',
     'allauth',
     'allauth.account',
-    'allauth.socialaccount'
+    'allauth.socialaccount',
+    'django.contrib.humanize',
    ]
 
 MIDDLEWARE = [

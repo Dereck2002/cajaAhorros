@@ -21,8 +21,10 @@ from app_cajaAhorros import views
 from django.conf import settings
 from django.conf.urls.static import static
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', views.dashboard, name='dashboard'),
     path('socios/', views.socio_list, name='socio_list'),
     path('socios/crear/', views.crear_socio, name='crear_socio'),
     path('socios/<int:pk>/editar/', views.editar_socio, name='editar_socio'),

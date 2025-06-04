@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
+from django.db.models.functions import TruncMonth
+from django.db.models import Count
 from django.db.models import Sum
 from .models import Movimiento, Socio, Cargo, Prestamo, PagoPrestamo
 from .forms import SocioForm, PrestamoForm
@@ -334,3 +336,39 @@ def generar_amortizacion(prestamo):
                 estado=False,
                 fecha_a_pagar=fecha + relativedelta(months=i)
             )
+
+
+#dashboard
+@login_required
+def dashboard(request):
+    socios_activos = Socio.objects.filter(activo=True).count()
+
+    total_aportes = Movimiento.objects.filter(entrada__gt=0).aggregate(total=Sum('entrada'))['total'] or 0
+    total_retiros = Movimiento.objects.filter(salida__gt=0).aggregate(total=Sum('salida'))['total'] or 0
+    saldo_total = total_aportes - total_retiros
+
+    prestamos_estado = Prestamo.objects.values('estado').annotate(cantidad=Count('id'))
+
+    # Gráfico: aportes vs retiros por mes (últimos 6 meses)
+    hoy = date.today()
+    hace_seis_meses = hoy - relativedelta(months=5)
+    movimientos = Movimiento.objects.filter(fecha_movimiento__gte=hace_seis_meses)
+
+    movimientos_por_mes = movimientos.annotate(
+        mes=TruncMonth('fecha_movimiento')
+    ).values('mes').annotate(
+        total_entradas=Sum('entrada'),
+        total_salidas=Sum('salida'),
+    ).order_by('mes')
+
+    prestamos_recientes = Prestamo.objects.order_by('-id')[:5]
+
+    return render(request, 'dashboard.html', {
+        'socios_activos': socios_activos,
+        'total_aportes': total_aportes,
+        'total_retiros': total_retiros,
+        'saldo_total': saldo_total,
+        'prestamos_estado': prestamos_estado,
+        'movimientos_por_mes': movimientos_por_mes,
+        'prestamos_recientes': prestamos_recientes,
+    })           
