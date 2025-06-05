@@ -31,9 +31,11 @@
                 <td>{{ prestamo.estado }}</td>
 <td>
     <!-- Botón editar -->
+     {% if prestamo.estado == "Solicitado" %}
     <a href="{% url 'prestamo_edit' prestamo.pk %}" class="btn btn-sm btn-warning" title="Editar">
         <i class="bi bi-pencil-square"></i>
     </a>
+    {% endif %}
 
     <!-- Botón ver pagos -->
     {% if prestamo.estado == "Aprobado" %}

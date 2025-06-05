@@ -18,9 +18,12 @@
             <nav class="col-md-3 col-lg-2 d-md-block bg-dark sidebar collapse show p-0">
                 <div class="position-sticky">
                     <div class="sidebar-sticky pt-3 text-white">
-                        <div class="px-3 mb-4 mt-3 text-center">
-                            <h5><i class="bi bi-piggy-bank-fill text-success me-2" ></i>Caja Nantar</h5>
-                        </div>
+                    {% load static %}
+                    <div class="px-3 mb-4 mt-3 text-center">
+                        <a href="/">
+                            <img src="{% static 'img/logo.png' %}" alt="Logo Caja Nantar" style="max-height: 80px;" class="mb-2">
+                        </a>
+                    </div>
                         <ul class="nav flex-column px-2">
                             <li class="nav-item mb-2">
                                 <a class="nav-link text-white {% if request.path == '/socios/' %}active{% endif %}" href="{% url 'socio_list' %}">
