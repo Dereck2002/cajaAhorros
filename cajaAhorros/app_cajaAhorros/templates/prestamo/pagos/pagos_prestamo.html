@@ -4,6 +4,12 @@
 {% block title %}
 <h2 class="mb-4">Tabla de Amortización - Préstamo #{{ prestamo.id }}</h2>
 {% endblock title %}
+<a href="{% url 'exportar_amortizacion_pdf' prestamo.id %}" class="btn btn-danger btn-sm mb-3" target="_blank">
+    <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+</a>
+<a href="{% url 'exportar_amortizacion_excel' prestamo.id %}" class="btn btn-success btn-sm mb-3" target="_blank">
+    <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+</a>
 
 <div class="mb-3">
     <strong>Solicitante:</strong> {{ prestamo.socio }}<br>

@@ -2,8 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.db.models.functions import TruncMonth
-from django.db.models import Count
-from django.db.models import Sum
+from django.db.models import Count, Sum
 from .models import Movimiento, Socio, Cargo, Prestamo, PagoPrestamo
 from .forms import SocioForm, PrestamoForm
 from datetime import date
@@ -11,6 +10,12 @@ from dateutil.relativedelta import relativedelta
 from django.core.paginator import Paginator
 from decimal import Decimal
 from django.utils import timezone
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from django.http import HttpResponse
+from openpyxl import Workbook
 
 
 @login_required
@@ -296,47 +301,127 @@ def registrar_pago(request, pago_id):
 #tabla amortizacion
 def generar_amortizacion(prestamo):
     if prestamo.estado == 'Aprobado' and not prestamo.pagos.exists():
-        saldo = prestamo.cantidad_aprobada
-        cuota = prestamo.cuota
+        capital_prestado = prestamo.cantidad_aprobada
+        plazo = prestamo.plazo
+        interes_anual = prestamo.interes
+        saldo = capital_prestado
 
-        # Si la cuota no está calculada, la calculamos aquí
-        if cuota is None:
-            tasa_mensual = (prestamo.interes / 100) / 12
+        # Tasa mensual en decimales
+        tasa_mensual = (interes_anual / 100) / 12
 
+        # Si la cuota no está calculada, la calculamos (fórmula francesa)
+        if not prestamo.cuota:
             if tasa_mensual == 0:
-                cuota = prestamo.cantidad_aprobada / prestamo.plazo
+                cuota = capital_prestado / plazo
             else:
-                # Fórmula francesa: Cuota fija mensual
-                cuota = prestamo.cantidad_aprobada * (
-                    tasa_mensual * (1 + tasa_mensual) ** prestamo.plazo
-                ) / ((1 + tasa_mensual) ** prestamo.plazo - 1)
-
-            # Guardamos la cuota en el préstamo
+                cuota = capital_prestado * (
+                    tasa_mensual * (1 + tasa_mensual) ** plazo
+                ) / ((1 + tasa_mensual) ** plazo - 1)
             prestamo.cuota = round(cuota, 2)
             prestamo.save()
-
         else:
-            tasa_mensual = (prestamo.interes / 100) / 12
+            cuota = prestamo.cuota
 
         fecha = prestamo.fecha_aprobacion or timezone.now().date()
 
-        for i in range(prestamo.plazo):
+        for i in range(plazo):
             interes = saldo * tasa_mensual
             capital = cuota - interes
-            saldo -= capital
+
+            # Redondear para evitar decimales flotantes
+            interes = round(interes, 2)
+            capital = round(capital, 2)
+            cuota_real = round(capital + interes, 2)
+
+            # Ajustar última cuota para cerrar el saldo
+            if i == plazo - 1:
+                capital = saldo
+                interes = cuota - capital
+                cuota_real = round(capital + interes, 2)
+                saldo = 0
+            else:
+                saldo -= capital
+                saldo = round(saldo, 2)
 
             PagoPrestamo.objects.create(
                 prestamo=prestamo,
                 cuota_pago=i + 1,
-                saldo_pago=round(saldo if saldo > 0 else 0, 2),
-                capital_pago=round(capital, 2),
-                interes_pago=round(interes, 2),
-                plazo_pago=prestamo.plazo - i,
-                valor_cuota_pago=round(cuota, 2),
+                saldo_pago=saldo if saldo > 0 else 0.00,
+                capital_pago=capital,
+                interes_pago=interes,
+                plazo_pago=plazo - i,
+                valor_cuota_pago=cuota_real,
                 estado=False,
                 fecha_a_pagar=fecha + relativedelta(months=i)
             )
 
+def exportar_amortizacion_pdf(request, pk):
+    prestamo = Prestamo.objects.get(pk=pk)
+    pagos = prestamo.pagos.all()
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="amortizacion_prestamo_{pk}.pdf"'
+
+    doc = SimpleDocTemplate(response, pagesize=A4)
+    elements = []
+    styles = getSampleStyleSheet()
+
+    elements.append(Paragraph(f'Tabla de Amortización - Préstamo #{pk}', styles['Title']))
+    elements.append(Spacer(1, 12))
+
+    datos = [['#', 'Saldo', 'Capital', 'Interés', 'Cuota', 'Fecha a Pagar', 'Estado']]
+
+    for pago in pagos:
+        datos.append([
+            pago.cuota_pago,
+            f"${pago.saldo_pago}",
+            f"${pago.capital_pago}",
+            f"${pago.interes_pago}",
+            f"${pago.valor_cuota_pago}",
+            pago.fecha_a_pagar.strftime('%d/%m/%Y'),
+            "Pagado" if pago.estado else "Pendiente"
+        ])
+
+    tabla = Table(datos, repeatRows=1)
+    tabla.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#d3d3d3')),
+        ('TEXTCOLOR',(0,0),(-1,0),colors.black),
+        ('ALIGN',(0,0),(-1,-1),'CENTER'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0,0), (-1,0), 12),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+    ]))
+
+    elements.append(tabla)
+    doc.build(elements)
+    return response
+
+def exportar_amortizacion_excel(request, pk):
+    prestamo = Prestamo.objects.get(pk=pk)
+    pagos = prestamo.pagos.all()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Amortización"
+
+    headers = ['#', 'Saldo', 'Capital', 'Interés', 'Cuota', 'Fecha a Pagar', 'Estado']
+    ws.append(headers)
+
+    for pago in pagos:
+        ws.append([
+            pago.cuota_pago,
+            pago.saldo_pago,
+            pago.capital_pago,
+            pago.interes_pago,
+            pago.valor_cuota_pago,
+            pago.fecha_a_pagar.strftime('%d/%m/%Y'),
+            'Pagado' if pago.estado else 'Pendiente'
+        ])
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="amortizacion_prestamo_{pk}.xlsx"'
+    wb.save(response)
+    return response
 
 #dashboard
 @login_required

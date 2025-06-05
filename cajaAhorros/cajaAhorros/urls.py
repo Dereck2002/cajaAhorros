@@ -47,6 +47,9 @@ urlpatterns = [
     path('prestamos/<int:pk>/rechazar/', views.rechazar_prestamo, name='prestamo_rechazado'),
     path('pagos/prestamo/<int:prestamo_id>/', views.pagos_prestamo, name='pagos_prestamo'),
     path('pagos/registrar/<int:pago_id>/', views.registrar_pago, name='registrar_pago'),
+    path('prestamo/<int:pk>/exportar-pdf/', views.exportar_amortizacion_pdf, name='exportar_amortizacion_pdf'),
+    path('prestamo/<int:pk>/exportar-excel/', views.exportar_amortizacion_excel, name='exportar_amortizacion_excel'),
+
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
