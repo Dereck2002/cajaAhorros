@@ -85,7 +85,7 @@ class Prestamo(models.Model):
     cantidad_solicitada = models.DecimalField(max_digits=12, decimal_places=2)
     cantidad_aprobada = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     plazo = models.PositiveIntegerField(help_text="Plazo en meses")
-    interes = models.DecimalField(max_digits=5, decimal_places=2)
+    interes = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     cuota = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     estado = models.CharField(max_length=20, choices=ESTADOS, default='Solicitado')
     nota = models.TextField(blank=True, null=True)

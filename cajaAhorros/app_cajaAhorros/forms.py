@@ -38,7 +38,7 @@ class PrestamoForm(forms.ModelForm):
             'cantidad_solicitada',
             'cantidad_aprobada',
             'plazo',
-            'interes',
+           
             'cuota',
             'nota',
             'fecha_aprobacion'
@@ -47,7 +47,8 @@ class PrestamoForm(forms.ModelForm):
             'fecha_prestamo': forms.DateInput(attrs={'type': 'date'}),
             'fecha_aprobacion': forms.DateInput(attrs={'type': 'date'}),
             'nota': forms.Textarea(attrs={'rows': 2}),
-            'cuota': forms.NumberInput(attrs={'readonly': 'readonly'}),
+            # Aquí puedes dejar el readonly, pero si ocultas el campo, no es necesario
+            # 'cuota': forms.NumberInput(attrs={'readonly': 'readonly'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -62,3 +63,24 @@ class PrestamoForm(forms.ModelForm):
             self.fields['cantidad_aprobada'].widget = forms.HiddenInput()
             self.fields['nota'].widget = forms.HiddenInput()
             self.fields['fecha_aprobacion'].widget = forms.HiddenInput()
+            self.fields['cuota'].widget = forms.HiddenInput()  # <-- Aquí ocultas cuota
+
+
+
+#configuracion
+class ConfiguracionForm(forms.ModelForm):
+    class Meta:
+        model = Configuracion
+        fields = ['ruc', 'nombre_empresa', 'direccion', 'telefono', 'email', 'logo', 'ciudad', 'tasa_interes', 'plazo_maximo']
+        widgets = {
+            'ruc': forms.TextInput(attrs={'class': 'form-control'}),
+            'nombre_empresa': forms.TextInput(attrs={'class': 'form-control'}),
+            'direccion': forms.TextInput(attrs={'class': 'form-control'}),
+            'telefono': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'logo': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'ciudad': forms.TextInput(attrs={'class': 'form-control'}),
+            'tasa_interes': forms.NumberInput(attrs={'class': 'form-control'}),
+            'plazo_maximo': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+

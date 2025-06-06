@@ -3,8 +3,8 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.db.models.functions import TruncMonth
 from django.db.models import Count, Sum
-from .models import Movimiento, Socio, Cargo, Prestamo, PagoPrestamo
-from .forms import SocioForm, PrestamoForm
+from .models import Movimiento, Socio, Cargo, Prestamo, PagoPrestamo, Configuracion
+from .forms import SocioForm, PrestamoForm, ConfiguracionForm
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from django.core.paginator import Paginator
@@ -232,25 +232,32 @@ def prestamo_list(request):
 # Crear préstamo
 def crear_o_editar_prestamo(request, pk=None):
     prestamo = get_object_or_404(Prestamo, pk=pk) if pk else None
-
+    config = Configuracion.objects.first()  # Obtiene la configuración actual
+    
     if request.method == 'POST':
         form = PrestamoForm(request.POST, instance=prestamo)
         if form.is_valid():
             prestamo = form.save(commit=False)
+
+            # Asignar interés desde configuración (ignorar lo que venga en el form)
+            prestamo.interes = config.tasa_interes
+            
+            # Validar plazo máximo
+            if prestamo.plazo > config.plazo_maximo:
+                form.add_error('plazo', f'El plazo máximo permitido es {config.plazo_maximo} meses.')
+                return render(request, 'prestamo/crear_editar_prestamo.html', {'form': form})
+
             if not pk:
                 prestamo.estado = 'Solicitado'
             else:
                 prestamo.estado = 'Pendiente'
 
-            # Vaciar cuota para forzar recálculo en el modelo
             prestamo.cuota = None
-
             prestamo.save()
             return redirect('prestamo_list')
     else:
         form = PrestamoForm(instance=prestamo)
 
-        # 👇 Vaciar cuota en el formulario al editar para que se vea vacío
         if prestamo:
             form.initial['cuota'] = ''
 
@@ -457,3 +464,15 @@ def dashboard(request):
         'movimientos_por_mes': movimientos_por_mes,
         'prestamos_recientes': prestamos_recientes,
     })           
+
+
+def configuracion(request):
+    config = Configuracion.objects.first()
+    if request.method == 'POST':
+        form = ConfiguracionForm(request.POST, request.FILES, instance=config)
+        if form.is_valid():
+            form.save()
+            return redirect('dashboard')
+    else:
+        form = ConfiguracionForm(instance=config)
+    return render(request, 'configuracion/configuracion.html', {'form': form})
