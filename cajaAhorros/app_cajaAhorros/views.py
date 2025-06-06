@@ -336,7 +336,7 @@ def generar_amortizacion(prestamo):
             # Ajustar última cuota para cerrar el saldo
             if i == plazo - 1:
                 capital = saldo
-                interes = cuota - capital
+                interes = max(0, cuota - capital)
                 cuota_real = round(capital + interes, 2)
                 saldo = 0
             else:

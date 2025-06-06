@@ -92,7 +92,7 @@ class Prestamo(models.Model):
     fecha_aprobacion = models.DateField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        self.cuota = (self.cantidad_solicitada * (1 + self.interes / 100)) / self.plazo
+        
         if not self.cantidad_aprobada:
             self.cantidad_aprobada = self.cantidad_solicitada
         super().save(*args, **kwargs)
