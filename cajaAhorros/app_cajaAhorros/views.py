@@ -475,4 +475,6 @@ def configuracion(request):
             return redirect('dashboard')
     else:
         form = ConfiguracionForm(instance=config)
-    return render(request, 'configuracion/configuracion.html', {'form': form})
+    return render(request, 'configuracion/configuracion.html', {'form': form, 'configuracion': config})
+
+

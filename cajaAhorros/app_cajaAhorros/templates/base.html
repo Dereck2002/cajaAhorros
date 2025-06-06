@@ -23,10 +23,14 @@
                         {% load static %}
                         <div class="px-3 mb-4 mt-3 text-center">
                             <a href="/">
-                                <img src="{% static 'img/logo.png' %}" alt="Logo Caja Nantar" style="max-height: 80px;"
-                                    class="mb-2">
+                                {% if configuracion and configuracion.logo %}
+                                    <img src="{{ configuracion.logo.url }}" alt="Logo Caja Nantar" style="max-height: 80px;" class="mb-2">
+                                {% else %}
+                                    <img src="{% static 'img/logo.png' %}" alt="Logo Caja Nantar" style="max-height: 80px;" class="mb-2">
+                                {% endif %}
                             </a>
                         </div>
+
                         <ul class="nav flex-column px-2">
                             <li class="nav-item mb-2">
                                 <a class="nav-link text-white {% if request.path == '/socios/' %}active{% endif %}"
