@@ -37,8 +37,7 @@ class PrestamoForm(forms.ModelForm):
             'fecha_prestamo',
             'cantidad_solicitada',
             'cantidad_aprobada',
-            'plazo',
-           
+            'plazo',          
             'cuota',
             'nota',
             'fecha_aprobacion'
