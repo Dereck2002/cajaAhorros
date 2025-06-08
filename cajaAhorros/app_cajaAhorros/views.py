@@ -3,6 +3,7 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.db.models.functions import TruncMonth
 from django.db.models import Count, Sum
+from django.contrib import messages
 from .models import Movimiento, Socio, Cargo, Prestamo, PagoPrestamo, Configuracion
 from .forms import SocioForm, PrestamoForm, ConfiguracionForm
 from datetime import date
@@ -16,6 +17,263 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 from django.http import HttpResponse
 from openpyxl import Workbook
+
+# Importamos el decorador de roles que creamos
+from .decorators import role_required
+
+# --- Función Auxiliar para obtener el Rol ---
+def get_user_role(user):
+    if user.is_superuser:
+        return 'Administrador' # El superusuario siempre es Administrador
+    # Devuelve el nombre del primer grupo del usuario, o None si no pertenece a ninguno.
+    return user.groups.first().name if user.groups.exists() else None
+@login_required
+def dashboard(request):
+    """
+    Esta vista actúa como un centro de redirección después del login.
+    Dirige a cada usuario a su página principal correspondiente.
+    """
+    role = get_user_role(request.user)
+
+    if role == 'Secretaria':
+        return redirect('socio_list') # La secretaria va a la lista de socios.
+    
+    if role == 'Tesorero':
+        return redirect('prestamo_list') # El tesorero va a la lista de préstamos.
+    
+    # El Presidente, Administrador y Superusuario van a la lista de socios como página principal.
+    # No se muestra un panel de control, sino que se les dirige a la vista principal de la app.
+    return redirect('socio_list')
+# --- Vistas de Socios ---
+@login_required
+@role_required(allowed_roles=['Presidente', 'Secretaria'])
+def socio_list(request):
+    filtro = request.GET.get('filtro', 'todos')
+    socios = Socio.objects.filter(activo=True)
+    cargos = Cargo.objects.all()
+    hoy = date.today().replace(day=1)
+
+    def meses_faltantes(socio):
+        movimientos = Movimiento.objects.filter(socio=socio, entrada__gt=0).order_by('fecha_movimiento')
+        if not movimientos.exists():
+            return True
+        fechas_aportes = movimientos.dates('fecha_movimiento', 'month')
+        meses_aporte_set = set((d.year, d.month) for d in fechas_aportes)
+        
+        # Corrección: Asegurarse de que `movimientos.first()` no sea None
+        if not movimientos:
+            return True
+            
+        inicio = movimientos.first().fecha_movimiento.replace(day=1)
+        actual = inicio
+        while actual <= hoy:
+            if (actual.year, actual.month) not in meses_aporte_set:
+                return True
+            actual += relativedelta(months=1)
+        return False
+
+    socios_filtrados = []
+    for socio in socios:
+        faltante = meses_faltantes(socio)
+        if filtro == 'todos' or (filtro == 'al_dia' and not faltante) or (filtro == 'deudores' and faltante):
+            socios_filtrados.append(socio)
+
+    paginator = Paginator(socios_filtrados, 10)
+    page = request.GET.get('page')
+    socios_paginados = paginator.get_page(page)
+
+    role = get_user_role(request.user)
+    is_read_only = role == 'Presidente'
+    
+    context = {
+        'socios': socios_paginados,
+        'filtro': filtro,
+        'cargos': cargos,
+        'is_read_only': is_read_only,
+        'role': role,
+    }
+    return render(request, 'socios/socio_list.html', context)
+
+@login_required
+@role_required(allowed_roles=['Secretaria'])
+def crear_socio(request):
+    if request.method == 'POST':
+        form = SocioForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            return redirect('socio_list')
+    else:
+        form = SocioForm()
+    return render(request, 'socios/crear_socio.html', {'form': form})
+
+@login_required
+@role_required(allowed_roles=['Secretaria'])
+def editar_socio(request, pk):
+    socio = get_object_or_404(Socio, pk=pk)
+    if request.method == 'POST':
+        form = SocioForm(request.POST, request.FILES, instance=socio)
+        if form.is_valid():
+            form.save()
+            return redirect('socio_list')
+    else:
+        form = SocioForm(instance=socio)
+    return render(request, 'socios/crear_socio.html', {'form': form})
+
+@login_required
+@role_required(allowed_roles=['Secretaria'])
+def eliminar_socio(request, pk):
+    socio = get_object_or_404(Socio, pk=pk)
+    if request.method == 'POST':
+        socio.activo = False
+        socio.save()
+        return redirect('socio_list')
+    return render(request, 'socios/eliminar_socio.html', {'socio': socio})
+
+
+@login_required
+@role_required(allowed_roles=['Presidente', 'Secretaria'])
+def ver_aportaciones_socio(request, socio_id):
+    socio = get_object_or_404(Socio, pk=socio_id)
+    movimientos = Movimiento.objects.filter(socio=socio).order_by('fecha_movimiento')
+
+    total_aportes = movimientos.filter(salida=0).aggregate(total=Sum('entrada'))['total'] or 0
+    total_retiros = movimientos.filter(entrada=0).aggregate(total=Sum('salida'))['total'] or 0
+    saldo = total_aportes - total_retiros
+
+    meses_con_aporte = movimientos.filter(entrada__gt=0).dates('fecha_movimiento', 'month')
+    meses_con_aporte_set = set((m.year, m.month) for m in meses_con_aporte)
+
+    meses_faltantes = []
+    if movimientos.exists():
+        inicio = movimientos.first().fecha_movimiento.replace(day=1)
+        fin = date.today().replace(day=1)
+        actual = inicio
+        while actual <= fin:
+            if (actual.year, actual.month) not in meses_con_aporte_set:
+                meses_faltantes.append(actual.strftime('%B %Y'))
+            actual += relativedelta(months=1)
+            
+    context = {
+        'socio': socio,
+        'movimientos': movimientos,
+        'total_aportes': total_aportes,
+        'total_retiros': total_retiros,
+        'saldo': saldo,
+        'meses_faltantes': meses_faltantes,
+        'is_read_only': get_user_role(request.user) == 'Presidente', # Presidente no puede modificar aportes
+    }
+    return render(request, 'aportes/ver_aportaciones_socio.html', context)
+
+@login_required
+@role_required(allowed_roles=['Secretaria'])
+def agregar_aporte(request, socio_id):
+    socio = get_object_or_404(Socio, pk=socio_id)
+    if request.method == 'POST':
+        detalle = request.POST.get('detalle_movimiento')
+        entrada = request.POST.get('entrada')
+        fecha = request.POST.get('fecha_movimiento')
+        entrada_decimal = Decimal(entrada)
+        ultimo_movimiento = Movimiento.objects.filter(socio=socio).order_by('-fecha_movimiento').first()
+        saldo_anterior = ultimo_movimiento.saldo if ultimo_movimiento else Decimal('0.00')
+        nuevo_saldo = saldo_anterior + entrada_decimal
+        Movimiento.objects.create(
+            socio=socio,
+            detalle_movimiento=detalle,
+            entrada=entrada_decimal,
+            salida=Decimal('0.00'),
+            saldo=nuevo_saldo,
+            fecha_movimiento=fecha
+        )
+        return redirect('ver_aportaciones_socio', socio_id=socio_id)
+    # No hay plantilla para GET, así que es correcto no tener un render aquí.
+    return redirect('ver_aportaciones_socio', socio_id=socio_id)
+
+@login_required
+@role_required(allowed_roles=['Secretaria'])
+def editar_aporte(request, aporte_id):
+    aporte = get_object_or_404(Movimiento, pk=aporte_id)
+    if request.method == 'POST':
+        detalle = request.POST.get('detalle_movimiento')
+        entrada = request.POST.get('entrada')
+        fecha = request.POST.get('fecha_movimiento')
+        entrada_decimal = Decimal(entrada)
+        
+        aporte.detalle_movimiento = detalle
+        aporte.entrada = entrada_decimal
+        aporte.fecha_movimiento = fecha
+        # La lógica para recalcular saldos debería estar aquí si es necesaria
+        aporte.save()
+        return redirect('ver_aportaciones_socio', socio_id=aporte.socio.id)
+    return redirect('ver_aportaciones_socio', socio_id=aporte.socio.id)
+
+@login_required
+@role_required(allowed_roles=['Secretaria'])
+def eliminar_aporte(request, aporte_id):
+    aporte = get_object_or_404(Movimiento, pk=aporte_id)
+    socio_id = aporte.socio.id
+    if request.method == 'POST':
+        aporte.delete()
+        # Se debería recalcular el saldo de los movimientos posteriores
+        return redirect('ver_aportaciones_socio', socio_id=socio_id)
+    return render(request, 'eliminar_aporte_confirm.html', {'aporte': aporte})
+
+# --- Vistas de Préstamos ---
+@login_required
+@role_required(allowed_roles=['Presidente', 'Tesorero'])
+def prestamo_list(request):
+    prestamos = Prestamo.objects.all()
+    role = get_user_role(request.user)
+    is_read_only = role == 'Presidente'
+    context = {
+        'prestamos': prestamos,
+        'role': role,
+        'is_read_only': is_read_only,
+    }
+    return render(request, 'prestamo/prestamo_list.html', context)
+
+@login_required
+@role_required(allowed_roles=['Tesorero'])
+def crear_o_editar_prestamo(request, pk=None):
+    prestamo = get_object_or_404(Prestamo, pk=pk) if pk else None
+    config = Configuracion.objects.first()
+    if request.method == 'POST':
+        form = PrestamoForm(request.POST, instance=prestamo)
+        if form.is_valid():
+            prestamo = form.save(commit=False)
+            prestamo.interes = config.tasa_interes
+            if prestamo.plazo > config.plazo_maximo:
+                form.add_error('plazo', f'El plazo máximo permitido es {config.plazo_maximo} meses.')
+                return render(request, 'prestamo/crear_editar_prestamo.html', {'form': form})
+            prestamo.estado = 'Solicitado' if not pk else 'Pendiente'
+            prestamo.cuota = None
+            prestamo.save()
+            return redirect('prestamo_list')
+    else:
+        form = PrestamoForm(instance=prestamo)
+        if prestamo:
+            form.initial['cuota'] = ''
+    return render(request, 'prestamo/crear_editar_prestamo.html', {'form': form})
+
+
+@login_required
+@role_required(allowed_roles=['Tesorero'])
+@require_POST
+def aprobar_prestamo(request, pk):
+    prestamo = get_object_or_404(Prestamo, pk=pk)
+    prestamo.estado = 'Aprobado'
+    prestamo.fecha_aprobacion = date.today()
+    prestamo.save()
+    generar_amortizacion(prestamo)
+    return redirect('prestamo_list')
+
+@login_required
+@role_required(allowed_roles=['Tesorero'])
+@require_POST
+def rechazar_prestamo(request, pk):
+    prestamo = get_object_or_404(Prestamo, pk=pk)
+    prestamo.estado = 'Rechazado'
+    prestamo.save()
+    return redirect('prestamo_list')
 
 
 @login_required

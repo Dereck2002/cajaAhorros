@@ -4,9 +4,13 @@
 {% block content %}
 <div class="container">
     <h2>Lista de Préstamos</h2>
+    
+    {# El botón "Nuevo Préstamo" solo se muestra si el usuario tiene el permiso de añadir #}
+    {% if perms.app_cajaAhorros.add_prestamo %}
     <a href="{% url 'prestamo_create' %}" class="btn btn-success mb-3">
         <i class="bi bi-plus-circle"></i> Nuevo Préstamo
     </a>
+    {% endif %}
 
     <table class="table table-bordered">
         <thead class="table-light">
@@ -29,40 +33,41 @@
                 <td>{{ prestamo.plazo }}</td>
                 <td>{{ prestamo.interes }}</td>
                 <td>{{ prestamo.estado }}</td>
-<td>
-    <!-- Botón editar -->
-     {% if prestamo.estado == "Solicitado" %}
-    <a href="{% url 'prestamo_edit' prestamo.pk %}" class="btn btn-sm btn-warning" title="Editar">
-        <i class="bi bi-pencil-square"></i>
-    </a>
-    {% endif %}
+                <td>
+                    {# El Presidente (que no tiene estos permisos) no verá ningún botón. #}
+                    {# El Tesorero (con permisos) verá los botones correspondientes. #}
 
-    <!-- Botón ver pagos -->
-    {% if prestamo.estado == "Aprobado" %}
-    <a href="{% url 'pagos_prestamo' prestamo.pk %}" class="btn btn-sm btn-info" title="Ver pagos">
-        <i class="bi bi-eye"></i>
-    </a>
-    {% endif %}
+                    <!-- Botón editar: Requiere permiso de cambio -->
+                    {% if prestamo.estado == "Solicitado" and perms.app_cajaAhorros.change_prestamo %}
+                    <a href="{% url 'prestamo_edit' prestamo.pk %}" class="btn btn-sm btn-warning" title="Editar">
+                        <i class="bi bi-pencil-square"></i>
+                    </a>
+                    {% endif %}
 
-    <!-- Botón aprobar -->
-    {% if prestamo.estado == "Pendiente" %}
-    <form action="{% url 'aprobar_prestamo' prestamo.pk %}" method="post" style="display:inline;">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-sm btn-success" title="Aprobar" onclick="return confirm('¿Estás seguro de aprobar este préstamo?');">
-            <i class="bi bi-check-circle"></i>
-        </button>
-    </form>
+                    <!-- Botón ver pagos: Requiere permiso de vista -->
+                    {% if prestamo.estado == "Aprobado" and perms.app_cajaAhorros.view_pagoprestamo %}
+                    <a href="{% url 'pagos_prestamo' prestamo.pk %}" class="btn btn-sm btn-info" title="Ver pagos">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    {% endif %}
 
-    <!-- Botón rechazar -->
-    <form method="POST" action="{% url 'prestamo_rechazado' prestamo.pk %}" style="display:inline;" onsubmit="return confirm('¿Estás seguro de rechazar este préstamo?');">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger btn-sm" title="Rechazar">
-            <i class="bi bi-x-lg"></i>
-        </button>
-    </form>
-    {% endif %}
-</td>
+                    <!-- Botones aprobar/rechazar: Requieren permiso de cambio -->
+                    {% if prestamo.estado == "Pendiente" and perms.app_cajaAhorros.change_prestamo %}
+                    <form action="{% url 'aprobar_prestamo' prestamo.pk %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-success" title="Aprobar" onclick="return confirm('¿Estás seguro de aprobar este préstamo?');">
+                            <i class="bi bi-check-circle"></i>
+                        </button>
+                    </form>
 
+                    <form method="POST" action="{% url 'prestamo_rechazado' prestamo.pk %}" style="display:inline;" onsubmit="return confirm('¿Estás seguro de rechazar este préstamo?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-sm" title="Rechazar">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </td>
             </tr>
         {% empty %}
             <tr>
