@@ -70,7 +70,7 @@ class PrestamoForm(forms.ModelForm):
 class ConfiguracionForm(forms.ModelForm):
     class Meta:
         model = Configuracion
-        fields = ['ruc', 'nombre_empresa', 'direccion', 'telefono', 'email', 'logo', 'ciudad', 'tasa_interes', 'plazo_maximo']
+        fields = ['ruc', 'nombre_empresa', 'direccion', 'telefono', 'email', 'logo', 'ciudad', 'tasa_interes', 'plazo_maximo', 'aporte_inicial', 'gastos_adm' ]
         widgets = {
             'ruc': forms.TextInput(attrs={'class': 'form-control'}),
             'nombre_empresa': forms.TextInput(attrs={'class': 'form-control'}),
@@ -81,5 +81,7 @@ class ConfiguracionForm(forms.ModelForm):
             'ciudad': forms.TextInput(attrs={'class': 'form-control'}),
             'tasa_interes': forms.NumberInput(attrs={'class': 'form-control'}),
             'plazo_maximo': forms.NumberInput(attrs={'class': 'form-control'}),
+            'aporte_inicial': forms.NumberInput(attrs={'class': 'form-control'}),
+            'gastos_adm': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 

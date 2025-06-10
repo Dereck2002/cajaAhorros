@@ -46,6 +46,11 @@
                                         <i class="bi bi-cash-stack me-2"></i> Préstamos
                                     </a>
                                 </li>
+                                <li class="nav-item mb-2">
+                                    <a class="nav-link text-white {% if 'prestamo' in request.path %}active{% endif %}" href="{% url 'prestamo_list' %}">
+                                        <i class="bi bi-cash-stack me-2"></i> Gastos Administrativos
+                                    </a>
+                                </li>
                                 {# Configuración solo es visible para Administrador y Superusuario #}
                                 {% if user.is_superuser or role == 'Administrador' %}
                                 <li class="nav-item">
@@ -101,8 +106,20 @@
 
             <!-- Contenido principal -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
-                {% block content %}{% endblock content %}
-            </main>
+    {% if messages %}
+        <div class="container mt-2">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% block content %}{% endblock content %}
+</main>
+
         </div>
     </div>
 

@@ -45,7 +45,7 @@
                     {% endif %}
 
                     <!-- Botón ver pagos: Requiere permiso de vista -->
-                    {% if prestamo.estado == "Aprobado" and perms.app_cajaAhorros.view_pagoprestamo %}
+                    {% if prestamo.estado in "Aprobado, Terminado" and perms.app_cajaAhorros.view_pagoprestamo %}
                     <a href="{% url 'pagos_prestamo' prestamo.pk %}" class="btn btn-sm btn-info" title="Ver pagos">
                         <i class="bi bi-eye"></i>
                     </a>

@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models.functions import TruncMonth
 from django.db.models import Count, Sum
 from django.contrib import messages
-from .models import Movimiento, Socio, Cargo, Prestamo, PagoPrestamo, Configuracion
+from .models import Movimiento, Socio, Cargo, Prestamo, PagoPrestamo, Configuracion, GastosAdministrativos
 from .forms import SocioForm, PrestamoForm, ConfiguracionForm
 from datetime import date
 from dateutil.relativedelta import relativedelta
@@ -17,6 +17,7 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 from django.http import HttpResponse
 from openpyxl import Workbook
+from django.utils.timezone import now
 
 # Importamos el decorador de roles que creamos
 from .decorators import role_required
@@ -44,6 +45,8 @@ def dashboard(request):
     # El Presidente, Administrador y Superusuario van a la lista de socios como página principal.
     # No se muestra un panel de control, sino que se les dirige a la vista principal de la app.
     return redirect('socio_list')
+
+
 # --- Vistas de Socios ---
 @login_required
 @role_required(allowed_roles=['Presidente', 'Secretaria'])
@@ -100,7 +103,41 @@ def crear_socio(request):
     if request.method == 'POST':
         form = SocioForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
+            socio = form.save()
+
+            # Obtener configuración general
+            config = Configuracion.objects.first()
+            aporte_inicial = config.aporte_inicial if config else Decimal('0.00')
+            gasto_adm = config.gastos_adm if config else Decimal('0.00')
+            fecha_hoy = now().date()
+
+            # Registrar el primer aporte como movimiento
+            ultimo_mov = Movimiento.objects.filter(socio=socio).order_by('-fecha_movimiento').first()
+            saldo_anterior = ultimo_mov.saldo if ultimo_mov else Decimal('0.00')
+            nuevo_saldo = saldo_anterior + aporte_inicial
+
+            Movimiento.objects.create(
+                socio=socio,
+                detalle_movimiento="Aporte inicial",
+                entrada=aporte_inicial,
+                salida=Decimal('0.00'),
+                saldo=nuevo_saldo,
+                fecha_movimiento=fecha_hoy
+            )
+
+            # Registrar gasto administrativo
+            saldo_gasto = GastosAdministrativos.objects.order_by('-fecha').first()
+            saldo_anterior_gasto = saldo_gasto.saldo if saldo_gasto else Decimal('0.00')
+            nuevo_saldo_gasto = saldo_anterior_gasto + gasto_adm
+
+            GastosAdministrativos.objects.create(
+                fecha=fecha_hoy,
+                descripcion="Gastos administrativos por nuevo socio",
+                entrada=gasto_adm,
+                salida=Decimal('0.00'),
+                saldo=nuevo_saldo_gasto
+            )
+
             return redirect('socio_list')
     else:
         form = SocioForm()
@@ -108,25 +145,23 @@ def crear_socio(request):
 
 @login_required
 @role_required(allowed_roles=['Secretaria'])
-def editar_socio(request, pk):
-    socio = get_object_or_404(Socio, pk=pk)
-    if request.method == 'POST':
-        form = SocioForm(request.POST, request.FILES, instance=socio)
-        if form.is_valid():
-            form.save()
-            return redirect('socio_list')
-    else:
-        form = SocioForm(instance=socio)
-    return render(request, 'socios/crear_socio.html', {'form': form})
-
-@login_required
-@role_required(allowed_roles=['Secretaria'])
 def eliminar_socio(request, pk):
     socio = get_object_or_404(Socio, pk=pk)
-    if request.method == 'POST':
-        socio.activo = False
-        socio.save()
+
+    # Verificar si el socio tiene préstamos como titular o garante que NO estén terminados
+    prestamos_como_titular = Prestamo.objects.filter(socio=socio).exclude(estado='Terminado')
+    prestamos_como_garante = Prestamo.objects.filter(garante=socio).exclude(estado='Terminado')
+
+    if prestamos_como_titular.exists() or prestamos_como_garante.exists():
+        messages.error(request, 'No se puede eliminar al socio. Tiene préstamos activos como titular o garante.')
         return redirect('socio_list')
+
+    if request.method == 'POST':
+        socio.activo = False  # o socio.delete() si deseas eliminar completamente
+        socio.save()
+        messages.success(request, 'Socio eliminado correctamente.')
+        return redirect('socio_list')
+
     return render(request, 'socios/eliminar_socio.html', {'socio': socio})
 
 
@@ -167,26 +202,39 @@ def ver_aportaciones_socio(request, socio_id):
 @login_required
 @role_required(allowed_roles=['Secretaria'])
 def agregar_aporte(request, socio_id):
-    socio = get_object_or_404(Socio, pk=socio_id)
+    socio = get_object_or_404(Socio, id=socio_id)
+
     if request.method == 'POST':
         detalle = request.POST.get('detalle_movimiento')
-        entrada = request.POST.get('entrada')
+        tipo = request.POST.get('tipo')  # puede ser 'entrada' o 'salida'
+        monto = request.POST.get('monto')
         fecha = request.POST.get('fecha_movimiento')
-        entrada_decimal = Decimal(entrada)
-        ultimo_movimiento = Movimiento.objects.filter(socio=socio).order_by('-fecha_movimiento').first()
-        saldo_anterior = ultimo_movimiento.saldo if ultimo_movimiento else Decimal('0.00')
-        nuevo_saldo = saldo_anterior + entrada_decimal
+
+        if not monto:
+            # Asegura que monto no sea None
+            return HttpResponse("El campo monto es obligatorio.", status=400)
+
+        monto_decimal = Decimal(monto)
+
+        entrada = monto_decimal if tipo == 'entrada' else Decimal('0.00')
+        salida = monto_decimal if tipo == 'salida' else Decimal('0.00')
+
+        # Calcula el saldo actual del socio
+        ultimo_mov = Movimiento.objects.filter(socio=socio).order_by('-fecha_movimiento').first()
+        saldo_anterior = ultimo_mov.saldo if ultimo_mov else Decimal('0.00')
+        nuevo_saldo = saldo_anterior + entrada - salida
+
         Movimiento.objects.create(
             socio=socio,
             detalle_movimiento=detalle,
-            entrada=entrada_decimal,
-            salida=Decimal('0.00'),
+            entrada=entrada,
+            salida=salida,
+            fecha_movimiento=fecha,
             saldo=nuevo_saldo,
-            fecha_movimiento=fecha
         )
-        return redirect('ver_aportaciones_socio', socio_id=socio_id)
-    # No hay plantilla para GET, así que es correcto no tener un render aquí.
-    return redirect('ver_aportaciones_socio', socio_id=socio_id)
+
+        return redirect('ver_aportaciones_socio', socio.id)
+
 
 @login_required
 @role_required(allowed_roles=['Secretaria'])
@@ -317,19 +365,6 @@ def socio_list(request):
         'cargos': cargos,
     })
 
-# Crear socio
-@login_required
-def crear_socio(request):
-    if request.method == 'POST':
-        form = SocioForm(request.POST, request.FILES)
-        if form.is_valid():
-            form.save()
-            return redirect('socio_list')
-    else:
-        form = SocioForm()
-    
-    return render(request, 'socios/crear_socio.html', {'form': form})
-
 
 # Editar socio
 def editar_socio(request, pk):
@@ -344,14 +379,6 @@ def editar_socio(request, pk):
 
     return render(request, 'socios/crear_socio.html', {'form': form})
 
-# Eliminar socio
-def eliminar_socio(request, pk):
-    socio = get_object_or_404(Socio, pk=pk)
-    if request.method == 'POST':
-        socio.activo = False
-        socio.save()
-        return redirect('socio_list')
-    return render(request, 'socios/eliminar_socio.html', {'socio': socio})
 
 
 # Calcular totales por socio
@@ -388,32 +415,7 @@ def ver_aportaciones_socio(request, socio_id):
     })
 
 
-# Agregar Nuevo Aportes
-def agregar_aporte(request, socio_id):
-    socio = get_object_or_404(Socio, pk=socio_id)
-
-    if request.method == 'POST':
-        detalle = request.POST.get('detalle_movimiento')
-        entrada = request.POST.get('entrada')
-        fecha = request.POST.get('fecha_movimiento')
-
-        entrada_decimal = Decimal(entrada)
-
-        ultimo_movimiento = Movimiento.objects.filter(socio=socio).order_by('-fecha_movimiento').first()
-        saldo_anterior = ultimo_movimiento.saldo if ultimo_movimiento else Decimal('0.00')
-
-        nuevo_saldo = saldo_anterior + entrada_decimal
-
-        Movimiento.objects.create(
-            socio=socio,
-            detalle_movimiento=detalle,
-            entrada=entrada_decimal,
-            salida=Decimal('0.00'),
-            saldo=nuevo_saldo,
-            fecha_movimiento=fecha
-        )
-
-        return redirect('ver_aportaciones_socio', socio_id=socio_id)        
+     
 
 # Detalle del socio
 def detalle_socio(request, pk):
@@ -563,6 +565,7 @@ def registrar_pago(request, pago_id):
     pago.save()
     return redirect('pagos_prestamo', prestamo_id=pago.prestamo.id)
 
+
 #tabla amortizacion
 def generar_amortizacion(prestamo):
     if prestamo.estado == 'Aprobado' and not prestamo.pagos.exists():
@@ -574,7 +577,7 @@ def generar_amortizacion(prestamo):
         # Tasa mensual en decimales
         tasa_mensual = (interes_anual / 100) / 12
 
-        # Si la cuota no está calculada, la calculamos (fórmula francesa)
+        # Calcular cuota si no está definida
         if not prestamo.cuota:
             if tasa_mensual == 0:
                 cuota = capital_prestado / plazo
@@ -593,25 +596,22 @@ def generar_amortizacion(prestamo):
             interes = saldo * tasa_mensual
             capital = cuota - interes
 
-            # Redondear para evitar decimales flotantes
+            # Redondeo para evitar errores por flotantes
             interes = round(interes, 2)
             capital = round(capital, 2)
             cuota_real = round(capital + interes, 2)
 
-            # Ajustar última cuota para cerrar el saldo
+            # Última cuota ajustada
             if i == plazo - 1:
                 capital = saldo
                 interes = max(0, cuota - capital)
                 cuota_real = round(capital + interes, 2)
-                saldo = 0
-            else:
-                saldo -= capital
-                saldo = round(saldo, 2)
 
+            # Guardar cuota con saldo actual antes de restar
             PagoPrestamo.objects.create(
                 prestamo=prestamo,
                 cuota_pago=i + 1,
-                saldo_pago=saldo if saldo > 0 else 0.00,
+                saldo_pago=round(saldo, 2),
                 capital_pago=capital,
                 interes_pago=interes,
                 plazo_pago=plazo - i,
@@ -619,6 +619,11 @@ def generar_amortizacion(prestamo):
                 estado=False,
                 fecha_a_pagar=fecha + relativedelta(months=i)
             )
+
+            # Luego de registrar el pago, restamos el capital
+            saldo -= capital
+            saldo = round(saldo, 2)
+
 
 def exportar_amortizacion_pdf(request, pk):
     prestamo = Prestamo.objects.get(pk=pk)

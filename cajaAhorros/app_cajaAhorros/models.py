@@ -66,6 +66,8 @@ class Configuracion(models.Model):
     ciudad = models.CharField(max_length=100)
     tasa_interes = models.DecimalField(max_digits=5, decimal_places=2)   
     plazo_maximo = models.IntegerField()
+    aporte_inicial = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    gastos_adm = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
     def __str__(self):
         return self.nombre_empresa
@@ -77,10 +79,11 @@ class Prestamo(models.Model):
         ('Pendiente', 'Pendiente'),
         ('Aprobado', 'Aprobado'),
         ('Rechazado', 'Rechazado'),
+        ('Terminado', 'Terminado'),
     ]
 
-    socio = models.ForeignKey(Socio, on_delete=models.CASCADE, related_name='prestamos')
-    garante = models.ForeignKey(Socio, on_delete=models.SET_NULL, null=True, blank=True, related_name='garante_prestamos')
+    socio = models.ForeignKey(Socio, on_delete=models.RESTRICT, related_name='prestamos')
+    garante = models.ForeignKey(Socio, on_delete=models.RESTRICT, null=True, blank=True, related_name='garante_prestamos')
     fecha_prestamo = models.DateField(null=True, blank=True)
     cantidad_solicitada = models.DecimalField(max_digits=12, decimal_places=2)
     cantidad_aprobada = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
@@ -112,3 +115,14 @@ class PagoPrestamo(models.Model):
 
     def __str__(self):
         return f"Pago {self.pk} - Prestamo {self.prestamo.pk} - Cuota {self.cuota_pago}"  
+    
+
+class GastosAdministrativos(models.Model):
+    fecha = models.DateField()
+    descripcion = models.CharField(max_length=200)
+    entrada = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    salida = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    saldo = models.DecimalField(max_digits=12, decimal_places=2)
+
+    def __str__(self):
+        return f"Gasto Administrativo {self.pk} - {self.fecha}"
