@@ -242,14 +242,24 @@ def editar_aporte(request, aporte_id):
     aporte = get_object_or_404(Movimiento, pk=aporte_id)
     if request.method == 'POST':
         detalle = request.POST.get('detalle_movimiento')
-        entrada = request.POST.get('entrada')
+        tipo = request.POST.get('tipo')
+        monto = request.POST.get('monto')
         fecha = request.POST.get('fecha_movimiento')
-        entrada_decimal = Decimal(entrada)
-        
+
+        try:
+            monto_decimal = Decimal(monto)
+        except (TypeError, ValueError):
+            messages.error(request, "Monto inválido.")
+            return redirect('ver_aportaciones_socio', socio_id=aporte.socio.id)
+
         aporte.detalle_movimiento = detalle
-        aporte.entrada = entrada_decimal
         aporte.fecha_movimiento = fecha
-        # La lógica para recalcular saldos debería estar aquí si es necesaria
+        if tipo == 'entrada':
+            aporte.entrada = monto_decimal
+            aporte.salida = Decimal('0.00')
+        else:
+            aporte.salida = monto_decimal
+            aporte.entrada = Decimal('0.00')
         aporte.save()
         return redirect('ver_aportaciones_socio', socio_id=aporte.socio.id)
     return redirect('ver_aportaciones_socio', socio_id=aporte.socio.id)
@@ -415,8 +425,6 @@ def ver_aportaciones_socio(request, socio_id):
     })
 
 
-     
-
 # Detalle del socio
 def detalle_socio(request, pk):
     socio = get_object_or_404(Socio, pk=pk)
@@ -427,29 +435,6 @@ def detalle_socio(request, pk):
     )
 
     return render(request, 'socios/detalle.html', {'socio': socio, 'edad': edad})
-
-
-# Editar aporte
-def editar_aporte(request, aporte_id):
-    aporte = get_object_or_404(Movimiento, pk=aporte_id)
-
-    if request.method == 'POST':
-        detalle = request.POST.get('detalle_movimiento')
-        entrada = request.POST.get('entrada')
-        fecha = request.POST.get('fecha_movimiento')
-
-        entrada_decimal = Decimal(entrada)
-
-        # Actualizar campos
-        aporte.detalle_movimiento = detalle
-        aporte.entrada = entrada_decimal
-        aporte.fecha_movimiento = fecha
-        # Saldo puede ser recalculado según lógica de negocio; aquí simplificamos y dejamos igual.
-        aporte.save()
-        return redirect('ver_aportaciones_socio', socio_id=aporte.socio.id)
-
-    # Si por alguna razón GET: redirigimos al detalle
-    return redirect('ver_aportaciones_socio', socio_id=aporte.socio.id)
 
 
 # Eliminar aporte
@@ -560,10 +545,45 @@ def pagos_prestamo(request, prestamo_id):
 @login_required
 def registrar_pago(request, pago_id):
     pago = get_object_or_404(PagoPrestamo, id=pago_id)
+    prestamo = pago.prestamo
+
+    # Marcar el pago como realizado
     pago.estado = True
     pago.fecha_pago = timezone.now().date()
     pago.save()
-    return redirect('pagos_prestamo', prestamo_id=pago.prestamo.id)
+
+    # Verificar si ya se completaron todos los pagos
+    if not PagoPrestamo.objects.filter(prestamo=prestamo, estado=False).exists():
+        # Cambiar el estado del préstamo a "Terminado"
+        prestamo.estado = 'Terminado'
+        prestamo.save()
+
+        # Calcular el total de intereses generados
+        total_interes = prestamo.pagos.aggregate(total=Sum('interes_pago'))['total'] or Decimal('0.00')
+
+        # Obtener todos los socios activos
+        socios = Socio.objects.filter(activo=True)
+        num_socios = socios.count()
+
+        if num_socios > 0 and total_interes > 0:
+            interes_por_socio = total_interes / num_socios
+            interes_por_socio = interes_por_socio.quantize(Decimal('0.01'))  # Redondear a 2 decimales
+
+            for socio in socios:
+                ultimo_mov = Movimiento.objects.filter(socio=socio).order_by('-fecha_movimiento').first()
+                saldo_anterior = ultimo_mov.saldo if ultimo_mov else Decimal('0.00')
+                nuevo_saldo = saldo_anterior + interes_por_socio
+
+                Movimiento.objects.create(
+                    socio=socio,
+                    detalle_movimiento="Interes generado por prestamo",
+                    entrada=interes_por_socio,
+                    salida=Decimal('0.00'),
+                    saldo=nuevo_saldo,
+                    fecha_movimiento=timezone.now().date()
+                )
+
+    return redirect('pagos_prestamo', prestamo_id=prestamo.id)
 
 
 #tabla amortizacion

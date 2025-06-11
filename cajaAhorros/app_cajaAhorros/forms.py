@@ -4,7 +4,7 @@ from .models import Socio, Prestamo, Configuracion
 class SocioForm(forms.ModelForm):
     class Meta:
         model = Socio
-        fields = ('cedula', 'nombre', 'apellido', 'fecha_nacimiento', 'foto', 'fecha_ingreso')
+        fields = ('cedula', 'nombre', 'apellido', 'telefono', 'direccion', 'email', 'fecha_nacimiento', 'ocupacion', 'foto', 'fecha_ingreso')
         widgets = {
             'fecha_nacimiento': forms.DateInput(
                 attrs={'type': 'date', 'class': 'form-control'},
@@ -18,6 +18,13 @@ class SocioForm(forms.ModelForm):
             'cedula': forms.TextInput(attrs={'min': 0, 'class': 'form-control'}),
             'nombre': forms.TextInput(attrs={'placeholder': 'Nombre', 'class': 'form-control'}),
             'apellido': forms.TextInput(attrs={'placeholder': 'Apellido', 'class': 'form-control'}),
+            'telefono': forms.TextInput(attrs={'placeholder': 'Teléfono', 'class': 'form-control'}),
+            'direccion': forms.TextInput(attrs={'placeholder': 'Dirección', 'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'placeholder': 'Email', 'class': 'form-control'}),
+            'ocupacion': forms.TextInput(attrs={'placeholder': 'Ocupación', 'class': 'form-control'}),
+            # 'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            # 'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+
         }
 
     # Necesario para que las fechas se muestren al editar
