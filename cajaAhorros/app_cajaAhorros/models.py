@@ -112,6 +112,8 @@ class PagoPrestamo(models.Model):
     estado = models.BooleanField(default=True)
     fecha_pago = models.DateField(null=True, blank=True)
     fecha_a_pagar = models.DateField(blank=True, null=True)
+    detalle_pago = models.TextField(blank=True, null=True)
+    comprobante_pago = models.ImageField(upload_to='comprobante_pago/', blank=True, null=True)
 
     def __str__(self):
         return f"Pago {self.pk} - Prestamo {self.prestamo.pk} - Cuota {self.cuota_pago}"  

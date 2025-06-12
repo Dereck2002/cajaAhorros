@@ -19,7 +19,7 @@
 
 <div class="mb-3">
     <strong>Solicitante:</strong> {{ prestamo.socio }}<br>
-    <strong>Fecha del Crédito:</strong> {{ prestamo.fecha_aprobacion|date:"d/m/Y" }}<br>
+    <strong>Fecha del Aprobación:</strong> {{ prestamo.fecha_aprobacion|date:"d/m/Y" }}<br>
     <strong>Plazo:</strong> {{ prestamo.plazo }} meses<br>
     <strong>Monto Aprobado:</strong> ${{ prestamo.cantidad_aprobada|floatformat:2 }}<br>
     <strong>Interés:</strong> {{ prestamo.interes }}%
@@ -41,8 +41,8 @@
         </thead>
         <tbody>
             {% for pago in pagos %}
-            <tr class="{% cycle 'table-white' 'table-light' %}">
-                <td>{{ pago.fecha_a_pagar|date:"d \d\e F \d\e\l Y" }}</td>
+            <tr>
+                <td>{{ pago.fecha_a_pagar|date:"d/m/Y" }}</td>
                 <td>Cuota {{ pago.cuota_pago }} de {{ prestamo.plazo }}</td>
                 <td class="text-end">{{ pago.saldo_pago|floatformat:2 }}</td>
                 <td class="text-end">{{ pago.capital_pago|floatformat:2 }}</td>
@@ -57,15 +57,11 @@
                 </td>
                 <td class="text-center">
                     {% if not pago.estado %}
-                        <form method="POST" action="{% url 'registrar_pago' pago.id %}" class="d-inline">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-success btn-sm" title="Registrar pago"
-                                    onclick="return confirm('¿Confirmar el registro de este pago?');">
-                                <i class="bi bi-plus-lg"></i>
-                            </button>
-                        </form>
+                        <button class="btn btn-success btn-sm" onclick="abrirModalPago({{ pago.id }})">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
                     {% else %}
-                        <span class="text-muted">Pago el {{ pago.fecha_pago|date:"d \d\e F \d\e\l Y" }}</span>
+                        <span class="text-muted">Pago el {{ pago.fecha_pago|date:"d/m/Y" }}</span>
                     {% endif %}
                 </td>
             </tr>
@@ -73,6 +69,41 @@
         </tbody>
     </table>
 </div>
+
+<!-- Modal para registrar pago -->
+<div class="modal fade" id="modalPago" tabindex="-1" aria-labelledby="modalPagoLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="POST" enctype="multipart/form-data" id="formRegistrarPago">
+      {% csrf_token %}
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalPagoLabel">Registrar Pago</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="fecha_pago" class="form-label">Fecha de Pago</label>
+            <input type="date" name="fecha_pago" id="fecha_pago" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label for="detalle_pago" class="form-label">Detalle del Pago</label>
+            <textarea name="detalle_pago" id="detalle_pago" class="form-control" rows="2"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="comprobante_pago" class="form-label">Comprobante (opcional)</label>
+            <input type="file" name="comprobante_pago" id="comprobante_pago" class="form-control">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Guardar</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+
 
 <style>
 @media print {
@@ -91,3 +122,14 @@
 }
 </style>
 {% endblock %}
+
+{% block java-script-extra %}
+<script>
+  function abrirModalPago(pagoId) {
+    const form = document.getElementById('formRegistrarPago');
+    form.action = `/pagos/registrar/${pagoId}/`;  // Ajusta esta ruta según tu urls.py
+    const modal = new bootstrap.Modal(document.getElementById('modalPago'));
+    modal.show();
+  }
+</script>
+{% endblock java-script-extra %}
