@@ -54,9 +54,9 @@
             <tr>
                 <td>{{ m.fecha_movimiento|date:"d/m/Y" }}</td>
                 <td>{{ m.detalle_movimiento }}</td>
-                <td>${{ m.entrada|floatformat:2 }}</td>
-                <td>${{ m.salida|floatformat:2 }}</td>
-                <td>${{ m.saldo|floatformat:2 }}</td>
+                <td>${{ m.entrada|floatformat:"2" }}</td>
+                <td>${{ m.salida|floatformat:"2" }}</td>
+                <td>${{ m.saldo|floatformat:"2" }}</td>
 
                 {# Solo se muestra la celda de acciones si hay permisos #}
                 {% if perms.app_cajaAhorros.change_movimiento or perms.app_cajaAhorros.delete_movimiento %}
@@ -65,12 +65,12 @@
                     {% if perms.app_cajaAhorros.change_movimiento %}
                     {% if m.entrada > 0 %}
                         <button class="btn btn-sm btn-warning"
-                            onclick="abrirModalEditar({{ m.id }}, '{{ m.detalle_movimiento|escapejs }}', '{{ m.entrada|floatformat:2 }}', '{{ m.fecha_movimiento|date:"Y-m-d" }}', 'entrada')">
+                            onclick="abrirModalEditar({{ m.id }}, '{{ m.detalle_movimiento|escapejs }}', '{{ m.entrada|floatformat:"2" }}', '{{ m.fecha_movimiento|date:"Y-m-d" }}', 'entrada')">
                             ✏️ Editar
                         </button>
                     {% else %}
                         <button class="btn btn-sm btn-warning"
-                            onclick="abrirModalEditar({{ m.id }}, '{{ m.detalle_movimiento|escapejs }}', '{{ m.salida|floatformat:2 }}', '{{ m.fecha_movimiento|date:"Y-m-d" }}', 'salida')">
+                            onclick="abrirModalEditar({{ m.id }}, '{{ m.detalle_movimiento|escapejs }}', '{{ m.salida|floatformat:"2" }}', '{{ m.fecha_movimiento|date:"Y-m-d" }}', 'salida')">
                             ✏️ Editar
                         </button>
                     {% endif %}
@@ -158,7 +158,11 @@
     document.getElementById('formAporte').action = '/aportes/editar/' + id + '/';
     document.getElementById('detalle_movimiento').value = detalle;
     document.getElementById('tipo').value = tipo;
-    document.getElementById('monto').value = parseFloat(monto).toFixed(2);
+    
+ // 🔥 Aquí corregimos el formato de coma a punto
+    let montoNumerico = parseFloat(monto.replace(',', '.'));
+    document.getElementById('monto').value = montoNumerico.toFixed(2);
+    //document.getElementById('monto').value = parseFloat(monto).toFixed(2);
     document.getElementById('fecha_movimiento').value = fecha;
     document.getElementById('modalAporte').style.display = 'flex';
 }
