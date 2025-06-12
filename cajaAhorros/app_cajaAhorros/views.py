@@ -546,10 +546,16 @@ def pagos_prestamo(request, prestamo_id):
 def registrar_pago(request, pago_id):
     pago = get_object_or_404(PagoPrestamo, id=pago_id)
     prestamo = pago.prestamo
-
+# Captura datos del formulario modal
+    fecha_pago = request.POST.get('fecha_pago')
+    detalle_pago = request.POST.get('detalle_pago')
+    comprobante = request.FILES.get('comprobante_pago')
     # Marcar el pago como realizado
     pago.estado = True
-    pago.fecha_pago = timezone.now().date()
+    pago.fecha_pago = fecha_pago or timezone.now().date()
+    pago.detalle_pago = detalle_pago
+    if comprobante:
+        pago.comprobante_pago = comprobante
     
     pago.save()
 

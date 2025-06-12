@@ -29,41 +29,52 @@
     <table class="table align-middle table-bordered table-hover">
         <thead class="table-light text-uppercase text-center">
             <tr>
-                <th>Fecha de Pago</th>
-                <th>Descripción</th>
+                <th>Fecha a Pagar</th>
+                <th>Cuota</th>
                 <th class="text-end">Saldo</th>
                 <th class="text-end">Capital</th>
                 <th class="text-end">Interés</th>
                 <th class="text-end">Valor Cuota</th>
+                <th>Comprobante</th>
                 <th>Estado</th>
                 <th>Registrar Pago</th>
+                
             </tr>
         </thead>
         <tbody>
             {% for pago in pagos %}
             <tr>
                 <td>{{ pago.fecha_a_pagar|date:"d/m/Y" }}</td>
-                <td>Cuota {{ pago.cuota_pago }} de {{ prestamo.plazo }}</td>
+                <td>{{ pago.cuota_pago }}</td>
                 <td class="text-end">{{ pago.saldo_pago|floatformat:2 }}</td>
                 <td class="text-end">{{ pago.capital_pago|floatformat:2 }}</td>
                 <td class="text-end">{{ pago.interes_pago|floatformat:2 }}</td>
                 <td class="text-end">{{ pago.valor_cuota_pago|floatformat:2 }}</td>
+                <td>
+                    {% if pago.comprobante_pago %}
+                    <img class="img-thumbnail" width="50" src="{{ pago.comprobante_pago.url }}" alt="Comprobante"
+                        onclick="verComprobante('{{ pago.comprobante_pago.url }}')" style="cursor:pointer;">
+                    {% else %}
+                    Sin comprobante
+                    {% endif %}
+                </td>
                 <td class="text-center">
                     {% if pago.estado %}
-                        <span class="badge bg-success">Pagado</span>
+                    <span class="badge bg-success">Pagado</span>
                     {% else %}
-                        <span class="badge bg-warning text-dark">Por pagar</span>
+                    <span class="badge bg-warning text-dark">Por pagar</span>
                     {% endif %}
                 </td>
                 <td class="text-center">
                     {% if not pago.estado %}
-                        <button class="btn btn-success btn-sm" onclick="abrirModalPago({{ pago.id }})">
-                            <i class="bi bi-plus-lg"></i>
-                        </button>
+                    <button class="btn btn-success btn-sm" onclick="abrirModalPago({{ pago.id }})">
+                        <i class="bi bi-plus-lg"></i>
+                    </button>
                     {% else %}
-                        <span class="text-muted">Pago el {{ pago.fecha_pago|date:"d/m/Y" }}</span>
+                    <span class="text-muted">Pago el {{ pago.fecha_pago|date:"d/m/Y" }}. {{ pago.detalle_pago}} </span>
                     {% endif %}
                 </td>
+                
             </tr>
             {% endfor %}
         </tbody>
@@ -72,64 +83,109 @@
 
 <!-- Modal para registrar pago -->
 <div class="modal fade" id="modalPago" tabindex="-1" aria-labelledby="modalPagoLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <form method="POST" enctype="multipart/form-data" id="formRegistrarPago">
-      {% csrf_token %}
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="modalPagoLabel">Registrar Pago</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="fecha_pago" class="form-label">Fecha de Pago</label>
-            <input type="date" name="fecha_pago" id="fecha_pago" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label for="detalle_pago" class="form-label">Detalle del Pago</label>
-            <textarea name="detalle_pago" id="detalle_pago" class="form-control" rows="2"></textarea>
-          </div>
-          <div class="mb-3">
-            <label for="comprobante_pago" class="form-label">Comprobante (opcional)</label>
-            <input type="file" name="comprobante_pago" id="comprobante_pago" class="form-control">
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">Guardar</button>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        </div>
-      </div>
-    </form>
-  </div>
+    <div class="modal-dialog">
+        <form method="POST" enctype="multipart/form-data" id="formRegistrarPago">
+            {% csrf_token %}
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalPagoLabel">Registrar Pago</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="fecha_pago" class="form-label">Fecha de Pago</label>
+                        <input type="date" name="fecha_pago" id="fecha_pago" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="detalle_pago" class="form-label">Detalle del Pago</label>
+                        <textarea name="detalle_pago" id="detalle_pago" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="comprobante_pago" class="form-label">Comprobante (opcional)</label>
+                        <input type="file" name="comprobante_pago" id="comprobante_pago" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </div>
+        </form>
+    </div>
 </div>
 
-
+<!-- Modal para ver imagen comprobante -->
+<div class="modal fade" id="modalComprobante" tabindex="-1" aria-labelledby="modalComprobanteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalComprobanteLabel">📷 Comprobante de Pago</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="minimizarModal()">➖</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="maximizarModal()">🗖</button>
+                    <button type="button" class="btn btn-sm btn-danger" data-bs-dismiss="modal">✖</button>
+                </div>
+            </div>
+            <div class="modal-body text-center">
+                <img id="imgComprobante" src="" class="img-fluid rounded shadow" alt="Comprobante">
+            </div>
+        </div>
+    </div>
+</div>
 
 <style>
-@media print {
-    body * {
-        visibility: hidden;
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+
+        .table-responsive,
+        .table-responsive * {
+            visibility: visible;
+        }
+
+        .table-responsive {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+        }
     }
-    .table-responsive, .table-responsive * {
-        visibility: visible;
-    }
-    .table-responsive {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-    }
-}
 </style>
 {% endblock %}
 
 {% block java-script-extra %}
 <script>
-  function abrirModalPago(pagoId) {
-    const form = document.getElementById('formRegistrarPago');
-    form.action = `/pagos/registrar/${pagoId}/`;  // Ajusta esta ruta según tu urls.py
-    const modal = new bootstrap.Modal(document.getElementById('modalPago'));
-    modal.show();
-  }
+    function abrirModalPago(pagoId) {
+        const form = document.getElementById('formRegistrarPago');
+        form.action = `/pagos/registrar/${pagoId}/`;  // Ajusta esta ruta según tu urls.py
+        const modal = new bootstrap.Modal(document.getElementById('modalPago'));
+        modal.show();
+    }
+</script>
+
+<script>
+    function abrirModalPago(pagoId) {
+        const form = document.getElementById('formRegistrarPago');
+        form.action = `/pagos/registrar/${pagoId}/`;
+        const modal = new bootstrap.Modal(document.getElementById('modalPago'));
+        modal.show();
+    }
+
+    function verComprobante(url) {
+        const modal = new bootstrap.Modal(document.getElementById('modalComprobante'));
+        document.getElementById('imgComprobante').src = url;
+        modal.show();
+    }
+
+    function maximizarModal() {
+        const modalDialog = document.querySelector('#modalComprobante .modal-dialog');
+        modalDialog.classList.add('modal-fullscreen');
+    }
+
+    function minimizarModal() {
+        const modalDialog = document.querySelector('#modalComprobante .modal-dialog');
+        modalDialog.classList.remove('modal-fullscreen');
+    }
 </script>
 {% endblock java-script-extra %}
