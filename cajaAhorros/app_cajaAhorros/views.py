@@ -509,12 +509,12 @@ def crear_o_editar_prestamo(request, pk=None):
     return render(request, 'prestamo/crear_editar_prestamo.html', {'form': form})
 
 
-#aprovar prestamo
+#aprobar prestamo
 @require_POST
 def aprobar_prestamo(request, pk):
     prestamo = get_object_or_404(Prestamo, pk=pk)
     prestamo.estado = 'Aprobado'
-    prestamo.fecha_aprobacion = date.today()
+    #prestamo.fecha_aprobacion = date.today()
     prestamo.save()
     generar_amortizacion(prestamo)
     return redirect('prestamo_list')
@@ -540,16 +540,23 @@ def pagos_prestamo(request, prestamo_id):
         'pagos': pagos,
     })
 
-#registros de pagos
+#registros de pagos de  prestamos
 @require_POST
 @login_required
 def registrar_pago(request, pago_id):
     pago = get_object_or_404(PagoPrestamo, id=pago_id)
     prestamo = pago.prestamo
-
+# Captura datos del formulario modal
+    fecha_pago = request.POST.get('fecha_pago')
+    detalle_pago = request.POST.get('detalle_pago')
+    comprobante = request.FILES.get('comprobante_pago')
     # Marcar el pago como realizado
     pago.estado = True
-    pago.fecha_pago = timezone.now().date()
+    pago.fecha_pago = fecha_pago or timezone.now().date()
+    pago.detalle_pago = detalle_pago
+    if comprobante:
+        pago.comprobante_pago = comprobante
+    
     pago.save()
 
     # Verificar si ya se completaron todos los pagos
@@ -722,14 +729,19 @@ def dashboard(request):
     total_retiros = Movimiento.objects.filter(salida__gt=0).aggregate(total=Sum('salida'))['total'] or 0
     saldo_total = total_aportes - total_retiros
 
-    prestamos_estado = Prestamo.objects.values('estado').annotate(cantidad=Count('id'))
+    # Totales por estado
+    estados_deseados = ['Aprobado', 'Rechazado', 'Terminado']
+    prestamos_estado_montos = Prestamo.objects.filter(estado__in=estados_deseados).values('estado').annotate(
+        cantidad=Count('id'),
+        monto=Sum('cantidad_solicitada')
+    )
 
-    # Gráfico: aportes vs retiros por mes (últimos 6 meses)
-    hoy = date.today()
-    hace_seis_meses = hoy - relativedelta(months=5)
-    movimientos = Movimiento.objects.filter(fecha_movimiento__gte=hace_seis_meses)
+    # Para gráfico pastel
+    total_aprobados = Prestamo.objects.filter(estado='Aprobado').aggregate(total=Sum('cantidad_solicitada'))['total'] or 0
+    cartera_vencida = PagoPrestamo.objects.filter(estado=False).aggregate(
+        total=Sum('saldo_pago'))['total'] or 0
 
-    movimientos_por_mes = movimientos.annotate(
+    movimientos_por_mes = Movimiento.objects.annotate(
         mes=TruncMonth('fecha_movimiento')
     ).values('mes').annotate(
         total_entradas=Sum('entrada'),
@@ -743,7 +755,9 @@ def dashboard(request):
         'total_aportes': total_aportes,
         'total_retiros': total_retiros,
         'saldo_total': saldo_total,
-        'prestamos_estado': prestamos_estado,
+        'prestamos_estado_montos': prestamos_estado_montos,
+        'total_aprobados': total_aprobados,
+        'cartera_vencida': cartera_vencida,
         'movimientos_por_mes': movimientos_por_mes,
         'prestamos_recientes': prestamos_recientes,
     })           
