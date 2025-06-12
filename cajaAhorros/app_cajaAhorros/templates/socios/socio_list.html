@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    {% block title %}<h1>Listado de Socios</h1>{% endblock title %}
+
+    <!-- Botón para gestionar cargos y filtros -->
+    <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+        
+        {# El botón "Nuevo Socio" solo se muestra si el usuario tiene el permiso específico #}
+        {% if perms.app_cajaAhorros.add_socio %}
+        <a href="{% url 'crear_socio' %}" class="btn btn-success">
+            <i class="bi bi-person-plus"></i> Nuevo Socio
+        </a>
+        {% endif %}
+
+        <form method="get" class="d-flex align-items-center mb-0">
+            <label for="filtro" class="me-2 mb-0">Filtrar por estado:</label>
+            <select name="filtro" id="filtro" onchange="this.form.submit()" class="form-select form-select-sm">
+                <option value="todos" {% if filtro == 'todos' %}selected{% endif %}>Todos</option>
+                <option value="al_dia" {% if filtro == 'al_dia' %}selected{% endif %}>Al día</option>
+                <option value="deudores" {% if filtro == 'deudores' %}selected{% endif %}>Deudores</option>
+            </select>
+        </form>
+        <input type="search" id="buscador" placeholder="Buscar..." onkeyup="filtrarTabla()" class="form-control form-control-sm" style="max-width: 200px;">
+    </div>
+
+    <!-- Tabla de socios -->
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Cédula</th>
+                    <th>Nombres</th>
+                    <th>Foto</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for socio in socios %}
+                <tr>
+                    <td>{{ socio.cedula }}</td>
+                    <td>{{ socio.nombre }} {{ socio.apellido }}</td>
+                    <td>
+                        {% if socio.foto %}
+                            <img class="img-thumbnail" width="50" src="{{ socio.foto.url }}" alt="Foto de {{ socio.nombre }}">
+                        {% else %}
+                            Sin foto
+                        {% endif %}
+                    </td>
+                    <td>
+                        {# Botones visibles para todos los que pueden ver la lista #}
+                        <a href="{% url 'detalle_socio' socio.id %}" class="btn btn-outline-primary btn-sm" title="Ver detalle">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="{% url 'ver_aportaciones_socio' socio.id %}" class="btn btn-outline-info btn-sm" title="Ver aportaciones">
+                            <i class="bi bi-wallet2"></i>
+                        </a>
+                        
+                        {# Botones de edición y eliminación solo para roles con permisos específicos #}
+                        {% if perms.app_cajaAhorros.change_socio %}
+                        <a href="{% url 'editar_socio' socio.id %}" class="btn btn-outline-warning btn-sm" title="Editar">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% endif %}
+
+                        {% if perms.app_cajaAhorros.delete_socio %}
+                        <form method="post" action="{% url 'eliminar_socio' socio.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button onclick="abrirModal('{{ socio.id }}', '{{ socio.nombre }} {{ socio.apellido }}', 'socio'); return false;"
+                                    class="btn btn-outline-danger btn-sm" title="Desactivar">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">No hay socios registrados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginación -->
+    <div style="margin-top: 20px;">
+        {% if socios.has_previous %}
+            <a href="?page={{ socios.previous_page_number }}&filtro={{ filtro }}">⬅ Anterior</a>
+        {% endif %}
+        <span>Página {{ socios.number }} de {{ socios.paginator.num_pages }}</span>
+        {% if socios.has_next %}
+            <a href="?page={{ socios.next_page_number }}&filtro={{ filtro }}">Siguiente ➡</a>
+        {% endif %}
+    </div>
+</div>
+{% include "includes/modal_confirmacion.html" %}
+{% include "includes/modal_agregar_cargos.html" %}
+{% endblock content %}
+
+{% block java-script-extra %}
+<script>
+    function filtrarTabla() {
+        const input = document.getElementById("buscador").value.toLowerCase();
+        const filas = document.querySelectorAll("table tbody tr");
+        filas.forEach(fila => {
+            const textoFila = fila.innerText.toLowerCase();
+            fila.style.display = textoFila.includes(input) ? "" : "none";
+        });
+    }
+
+    function abrirModal(id, nombre, tipo) {
+        const modal = document.getElementById('modalEliminar');
+        const texto = document.getElementById('modalTexto');
+        const form = document.getElementById('formEliminar');
+        texto.textContent = `¿Estás seguro de que deseas eliminar a ${nombre}?`;
+        if (tipo === 'socio') {
+            form.action = `/socios/eliminar/${id}/`;
+        }
+        modal.style.display = 'flex';
+    }
+
+    function cerrarModal() {
+        document.getElementById('modalEliminar').style.display = 'none';
+    }
+</script>
+<div id="modalEliminar" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+    <div style="background:white; padding:20px; border-radius:8px; text-align:center;">
+        <p id="modalTexto">¿Estás seguro de que deseas desactivar?</p>
+        <form id="formEliminar" method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Sí, desactivar</button>
+            <button type="button" class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
+        </form>
+    </div>
+</div>
+{% endblock java-script-extra %}

@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{% block title %}<h2>Resumen de Aportaciones de {{ socio.nombre }} {{ socio.apellido }}</h2>{% endblock title %}
+
+<div class="container mt-4">
+
+    {# El botón para agregar solo se muestra si el usuario tiene el permiso #}
+    {% if perms.app_cajaAhorros.add_movimiento %}
+    <button onclick="abrirModalAgregar()" style="margin-bottom: 20px;" class="btn btn-success">➕ Agregar
+        Aportación</button>
+    {% endif %}
+
+    <p><strong>Total de aportes:</strong> ${{ total_aportes|floatformat:2 }}</p>
+    <p><strong>Total de retiros:</strong> ${{ total_retiros|floatformat:2 }}</p>
+    <p><strong>Saldo actual:</strong> ${{ saldo|floatformat:2 }}</p>
+
+    {% if movimientos|length == 0 %}
+    <div style="border: 2px solid orange; padding: 10px; margin-bottom: 20px; background-color: #fff3cd;">
+        ⚠ Sin aportaciones registradas para este socio.
+    </div>
+    {% elif meses_faltantes %}
+    <div style="border: 2px solid red; padding: 10px; margin-bottom: 20px; background-color: #ffe6e6;">
+        <strong>⚠ Meses sin aportaciones detectados:</strong>
+        <ul>
+            {% for mes in meses_faltantes %}
+            <li>{{ mes }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <div style="border: 2px solid green; padding: 10px; margin-bottom: 20px; background-color: #e6ffe6;">
+        ✅ No hay meses faltantes de aportaciones.
+    </div>
+    {% endif %}
+
+    <table class="table table-bordered">
+        <thead class="table-light">
+            <tr>
+                <th>Fecha</th>
+                <th>Detalle</th>
+                <th>Entrada</th>
+                <th>Salida</th>
+                <th>Saldo</th>
+                {# La columna de acciones solo aparece si el usuario tiene permiso para editar o eliminar #}
+                {% if perms.app_cajaAhorros.change_movimiento or perms.app_cajaAhorros.delete_movimiento %}
+                <th>Acciones</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in movimientos %}
+            <tr>
+                <td>{{ m.fecha_movimiento|date:"d/m/Y" }}</td>
+                <td>{{ m.detalle_movimiento }}</td>
+                <td>${{ m.entrada|floatformat:2 }}</td>
+                <td>${{ m.salida|floatformat:2 }}</td>
+                <td>${{ m.saldo|floatformat:2 }}</td>
+
+                {# Solo se muestra la celda de acciones si hay permisos #}
+                {% if perms.app_cajaAhorros.change_movimiento or perms.app_cajaAhorros.delete_movimiento %}
+                <td>
+                    {# Botón para editar #}
+                    {% if perms.app_cajaAhorros.change_movimiento %}
+                    {% if m.entrada > 0 %}
+                        <button class="btn btn-sm btn-warning"
+                            onclick="abrirModalEditar({{ m.id }}, '{{ m.detalle_movimiento|escapejs }}', '{{ m.entrada|floatformat:2 }}', '{{ m.fecha_movimiento|date:"Y-m-d" }}', 'entrada')">
+                            ✏️ Editar
+                        </button>
+                    {% else %}
+                        <button class="btn btn-sm btn-warning"
+                            onclick="abrirModalEditar({{ m.id }}, '{{ m.detalle_movimiento|escapejs }}', '{{ m.salida|floatformat:2 }}', '{{ m.fecha_movimiento|date:"Y-m-d" }}', 'salida')">
+                            ✏️ Editar
+                        </button>
+                    {% endif %}
+
+
+
+                    {% endif %}
+
+                    {# Botón para eliminar #}
+                    {% if perms.app_cajaAhorros.delete_movimiento %}
+                    <button class="btn btn-sm btn-danger"
+                        onclick="abrirModal('{{ m.id }}', 'la aportación de {{ m.fecha_movimiento|date:"d/m/Y" }}', 'aporte')">
+                        🗑 Eliminar
+                    </button>
+
+                    {% endif %}
+                </td>
+                {% endif %}
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">No hay movimientos registrados.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{% url 'socio_list' %}">⬅ Volver al listado</a>
+
+    <!-- Modal para Agregar/Editar Aportación -->
+    <div id="modalAporte"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div style="background:white; width:400px; padding:20px; border-radius:8px; position:relative;">
+            <h3 id="modalTitulo">Agregar Aportación</h3>
+            <form method="POST" id="formAporte" action="{% url 'agregar_aporte' socio.id %}">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label">Detalle:</label>
+                    <input type="text" class="form-control" name="detalle_movimiento" id="detalle_movimiento" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Tipo de movimiento:</label>
+                    <select class="form-control" name="tipo" id="tipo" required>
+                        <option value="" disabled selected>Seleccione una opción</option>
+                        <option value="entrada">Entrada</option>
+                        <option value="salida">Salida</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Monto ($):</label>
+                    <input type="number" step="0.01" class="form-control" name="monto" id="monto" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Fecha:</label>
+                    <input type="date" class="form-control" name="fecha_movimiento" id="fecha_movimiento" required>
+                </div>
+                <button type="submit" id="btnGuardar" class="btn btn-primary">Guardar</button>
+                <button type="button" class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de confirmación reutilizable -->
+    {% include "includes/modal_confirmacion.html" %}
+    {% include "includes/modal_agregar_cargos.html" %}
+    {% endblock content %}
+
+    {% block java-script-extra %}
+    <script>
+        // Solo se define la función si el usuario tiene permiso para agregar/editar
+        {% if perms.app_cajaAhorros.add_movimiento or perms.app_cajaAhorros.change_movimiento %}
+        function abrirModalAgregar() {
+            document.getElementById('modalTitulo').innerText = 'Agregar Aportación';
+            document.getElementById('formAporte').action = "{% url 'agregar_aporte' socio.id %}";
+            document.getElementById('detalle_movimiento').value = '';
+            document.getElementById('tipo').value = '';
+            document.getElementById('monto').value = '';
+            document.getElementById('fecha_movimiento').value = '';
+            document.getElementById('modalAporte').style.display = 'flex';
+        }
+
+
+       function abrirModalEditar(id, detalle, monto, fecha, tipo) {
+    document.getElementById('modalTitulo').innerText = 'Editar Aportación';
+    document.getElementById('formAporte').action = '/aportes/editar/' + id + '/';
+    document.getElementById('detalle_movimiento').value = detalle;
+    document.getElementById('tipo').value = tipo;
+    document.getElementById('monto').value = parseFloat(monto).toFixed(2);
+    document.getElementById('fecha_movimiento').value = fecha;
+    document.getElementById('modalAporte').style.display = 'flex';
+}
+
+
+        function cerrarModal() {
+            document.getElementById('modalAporte').style.display = 'none';
+        }
+        {% endif %}
+
+        // La función para confirmar eliminación siempre debe estar disponible si se muestra el botón
+        function abrirModal(id, nombre, tipo) {
+            const modal = document.getElementById('modalEliminar');
+            const texto = document.getElementById('modalTexto');
+            const form = document.getElementById('formEliminar');
+
+            texto.textContent = `¿Estás seguro de que deseas eliminar ${nombre}?`;
+
+            if (tipo === 'socio') {
+                form.action = `/socios/eliminar/${id}/`;
+            } else if (tipo === 'aporte') {
+                form.action = `/aportes/eliminar/${id}/`;
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function cerrarModalConfirmacion() {
+            document.getElementById('modalEliminar').style.display = 'none';
+        }
+    </script>
+    {% endblock java-script-extra %}

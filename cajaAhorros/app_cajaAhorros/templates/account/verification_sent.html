@@ -1,0 +1,41 @@
+{% extends "account/base.html" %}
+{% load static %}
+{% load i18n %}
+{% load account %}
+{% block title %}{% trans "Verify Your E-mail Address" %}{% endblock %}
+
+{% block content %}
+
+                        <div class="card overflow-hidden">
+                            <div class="bg-primary">
+                                <div class="text-primary text-center p-4">
+                                    <h5 class="text-white font-size-20">Verification Sent</h5>
+                                    <p class="text-white-50">Get your free Veltrix account now.</p>
+                                    <a href="{% url 'dashboard' %}" class="logo logo-admin">
+                                        <img src="{% static 'images/logo-sm.png' %}" height="24" alt="logo">
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="p-lg-5 p-4 text-center">
+                                <div class="mt-4">
+                                    <h4>{% trans "Verify Your E-mail Address" %} !</h4>
+                                    {% for message in messages %}
+                                    <div class="alert {{ message.tags }} mb-4" role="alert">
+                                        <strong>{{ message }}</strong>
+                                    </div>
+                                    {% endfor %} 
+                                    <p class="text-muted mx-4">{% blocktrans %}We have sent an e-mail to you for verification. Follow the link provided to finalize the signup process. Please contact us if you do not receive it within a few minutes.{% endblocktrans %}</p>
+                                    <div class="mt-4">
+                                        <a href="{% url 'dashboard' %}" class="btn btn-success w-100">Back to Dashboard</a>
+                                    </div>
+                                </div>
+                               
+                                <div class="mt-5 text-center">
+                                    <p>Back to home ? <a href="{% url 'dashboard' %}" class="fw-medium text-primary"> Dashboard </a> </p>
+                                    <p class="mb-0">© <script>document.write(new Date().getFullYear())</script> Veltrix. Crafted with <i class="mdi mdi-heart text-danger"></i> by Themesdesign</p>
+                                </div>
+                            </div>
+                        </div>
+                         
+                       
+{% endblock content %}
