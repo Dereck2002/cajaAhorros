@@ -1,0 +1,124 @@
+<!-- Modal de Gestión de Cargos -->
+<div id="modalCargo" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(0,0,0,0.5); z-index:1000;">
+    <div style="background:white; width:400px; margin:100px auto; padding:20px; border-radius:8px; position:relative;">
+        <h3 id="tituloModalCargo">Agregar Cargo</h3>
+
+        <!-- Select para listar cargos -->
+        <label for="selectCargo">Seleccionar Cargo para editar:</label><br>
+        <select id="selectCargo" onchange="seleccionarCargo()" style="width: 100%; margin-bottom: 15px;">
+            <option value="">-- Nuevo Cargo --</option>
+            {% for cargo in cargos %}
+            <option value="{{ cargo.id }}" data-nombre="{{ cargo.nombre_cargo }}" data-estado="{{ cargo.estado|yesno:'true,false' }}">
+                {{ cargo.nombre_cargo }}
+            </option>
+            {% endfor %}
+        </select>
+
+        <form method="POST" id="formCargo">
+            {% csrf_token %}
+            <label>Nombre del Cargo:</label><br>
+            <input type="text" name="nombre_cargo" id="nombre_cargo" required><br><br>
+
+            <label>Estado:</label><br>
+            <select name="estado" id="estado">
+                <option value="true">Activo</option>
+                <option value="false">Inactivo</option>
+            </select><br><br>
+
+            <input type="hidden" id="cargo_id" name="cargo_id">
+
+            <button type="submit" id="btnGuardarCargo">Guardar</button>
+            <button type="button" onclick="cerrarModalCargo()">Cancelar</button>
+
+            <!-- Botón eliminar visible solo si se edita -->
+            <button type="button" id="btnEliminarCargo" onclick="abrirModalCargoConfirm()" style="background:red; color:white; margin-left: 10px; display:none;">
+                Eliminar
+            </button>
+
+        </form>
+    </div>
+</div>
+
+<!-- Modal Confirmación General -->
+<div id="modalEliminar" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+    background-color:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:white; padding:20px; border-radius:10px; max-width:400px;">
+        <h3>¿Confirmar eliminación?</h3>
+        <p id="modalTexto"></p>
+        <form id="formEliminar" method="POST" style="margin-top:10px;">
+            {% csrf_token %}
+            <button type="submit">✅ Sí, eliminar</button>
+            <button type="button" onclick="cerrarModalEliminar()">❌ Cancelar</button>
+        </form>
+    </div>
+</div>
+
+<script>
+// Modal de Cargos
+function seleccionarCargo() {
+    const select = document.getElementById('selectCargo');
+    const id = select.value;
+
+    if (!id) {
+        // Nuevo cargo
+        document.getElementById('tituloModalCargo').innerText = 'Agregar Cargo';
+        document.getElementById('nombre_cargo').value = '';
+        document.getElementById('estado').value = 'true';
+        document.getElementById('cargo_id').value = '';
+        document.getElementById('formCargo').action = '/cargos/agregar/';
+        document.getElementById('btnEliminarCargo').style.display = 'none';
+    } else {
+        // Cargo existente - llenar form con data
+        const option = select.selectedOptions[0];
+        const nombre = option.getAttribute('data-nombre');
+        const estado = option.getAttribute('data-estado');
+
+        document.getElementById('tituloModalCargo').innerText = 'Editar Cargo';
+        document.getElementById('nombre_cargo').value = nombre;
+        document.getElementById('estado').value = estado;
+        document.getElementById('cargo_id').value = id;
+        document.getElementById('formCargo').action = `/cargos/editar/${id}/`;
+        document.getElementById('btnEliminarCargo').style.display = 'inline-block';
+    }
+}
+
+function abrirModalCargo() {
+    document.getElementById('modalCargo').style.display = 'block';
+    // Reseteamos select y formulario al abrir
+    document.getElementById('selectCargo').value = '';
+    seleccionarCargo();
+}
+
+function cerrarModalCargo() {
+    document.getElementById('modalCargo').style.display = 'none';
+}
+
+// Modal Confirmación General
+function abrirModalCargoConfirm() {
+    const id = document.getElementById('cargo_id').value;
+    const nombre = document.getElementById('nombre_cargo').value;
+    abrirModal(id, nombre, 'cargo');
+}
+
+function abrirModal(id, nombre, tipo) {
+    const modal = document.getElementById('modalEliminar');
+    const texto = document.getElementById('modalTexto');
+    const form = document.getElementById('formEliminar');
+
+    texto.textContent = `¿Estás seguro de que deseas eliminar ${tipo} de ${nombre}?`;
+
+    if (tipo === 'socio') {
+        form.action = `/socios/eliminar/${id}/`;
+    } else if (tipo === 'aporte') {
+        form.action = `/aportes/eliminar/${id}/`;
+    } else if (tipo === 'cargo') {
+        form.action = `/cargos/eliminar/${id}/`;
+    }
+
+    modal.style.display = 'flex';
+}
+
+function cerrarModalEliminar() {
+    document.getElementById('modalEliminar').style.display = 'none';
+}
+</script>

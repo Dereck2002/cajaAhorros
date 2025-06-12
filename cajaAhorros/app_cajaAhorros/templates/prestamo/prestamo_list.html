@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <h2>Lista de Préstamos</h2>
+    
+    {# El botón "Nuevo Préstamo" solo se muestra si el usuario tiene el permiso de añadir #}
+    {% if perms.app_cajaAhorros.add_prestamo %}
+    <a href="{% url 'prestamo_create' %}" class="btn btn-success mb-3">
+        <i class="bi bi-plus-circle"></i> Nuevo Préstamo
+    </a>
+    {% endif %}
+
+    <table class="table table-bordered">
+        <thead class="table-light">
+            <tr>
+                <th>Socio</th>
+                <th>Garantía</th>
+                <th>Cantidad Solicitada</th>
+                <th>Plazo (meses)</th>
+                <th>Interés (%)</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for prestamo in prestamos %}
+            <tr>
+                <td>{{ prestamo.socio }}</td>
+                <td>{{ prestamo.garante }}</td>
+                <td>{{ prestamo.cantidad_solicitada }}</td>
+                <td>{{ prestamo.plazo }}</td>
+                <td>{{ prestamo.interes }}</td>
+                <td>{{ prestamo.estado }}</td>
+                <td>
+                    {# El Presidente (que no tiene estos permisos) no verá ningún botón. #}
+                    {# El Tesorero (con permisos) verá los botones correspondientes. #}
+
+                    <!-- Botón editar: Requiere permiso de cambio -->
+                    {% if prestamo.estado == "Solicitado" and perms.app_cajaAhorros.change_prestamo %}
+                    <a href="{% url 'prestamo_edit' prestamo.pk %}" class="btn btn-sm btn-warning" title="Editar">
+                        <i class="bi bi-pencil-square"></i>
+                    </a>
+                    {% endif %}
+
+                    <!-- Botón ver pagos: Requiere permiso de vista -->
+                    {% if prestamo.estado in "Aprobado, Terminado" and perms.app_cajaAhorros.view_pagoprestamo %}
+                    <a href="{% url 'pagos_prestamo' prestamo.pk %}" class="btn btn-sm btn-info" title="Ver pagos">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    {% endif %}
+
+                    <!-- Botones aprobar/rechazar: Requieren permiso de cambio -->
+                    {% if prestamo.estado == "Pendiente" and perms.app_cajaAhorros.change_prestamo %}
+                    <form action="{% url 'aprobar_prestamo' prestamo.pk %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-success" title="Aprobar" onclick="return confirm('¿Estás seguro de aprobar este préstamo?');">
+                            <i class="bi bi-check-circle"></i>
+                        </button>
+                    </form>
+
+                    <form method="POST" action="{% url 'prestamo_rechazado' prestamo.pk %}" style="display:inline;" onsubmit="return confirm('¿Estás seguro de rechazar este préstamo?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-sm" title="Rechazar">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="7" class="text-center">No hay préstamos registrados.</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'account/base.html' %}
+{% load static %}
+{% load i18n %}
+{% load account socialaccount %}
+
+{% block title %}Inicio de sesión - Nantar{% endblock title %}
+
+{% block content %}
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+    <div class="w-100" style="max-width: 450px;">
+
+        <!-- Encabezado -->
+        <div class="text-center mb-4">
+            <a href="/">
+                <img src="{% static 'img/logo.png' %}" alt="Logo Nantar" width="100" class="mb-3" />
+            </a>
+            <h2 class="fw-bold text-primary">Bienvenido a Nantar</h2>
+            <p class="text-muted">Caja de ahorro y crédito “Nantar” - Sevilla Don Bosco</p>
+        </div>
+
+        <!-- Formulario en tarjeta -->
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body p-4">
+                <form class="needs-validation" novalidate method="POST" action="{% url 'account_login' %}">
+                    {% csrf_token %}
+
+                    <!-- Campo usuario -->
+                    <div class="mb-3">
+                        <label for="id_login" class="form-label fw-medium">Usuario o correo electrónico</label>
+                        {{ form.login }}
+                    </div>
+
+                    <!-- Campo contraseña -->
+                    <div class="mb-3">
+                        <label for="id_password" class="form-label fw-medium">Contraseña</label>
+                        {{ form.password }}
+                    </div>
+
+
+                    <!-- Botón -->
+                    <div class="text-center">
+                        <button class="btn btn-primary btn-lg px-5 rounded-pill" type="submit">
+                            Iniciar sesión
+                        </button>
+                    </div>
+
+                    <!-- Recuperar contraseña -->
+                    <div class="mt-4 text-center">
+                        <a href="{% url 'account_reset_password' %}" class="text-decoration-none text-secondary">
+                            <i class="mdi mdi-lock"></i> ¿Olvidaste tu contraseña?
+                        </a>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock content %}

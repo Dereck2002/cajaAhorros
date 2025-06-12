@@ -37,8 +37,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'app_cajaAhorros'
-]
+    'django.contrib.sites',
+    'app_cajaAhorros',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'django.contrib.humanize',
+   ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -48,6 +53,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = 'cajaAhorros.urls'
@@ -62,6 +68,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'app_cajaAhorros.context_processors.configuracion',
+
             ],
         },
     },
@@ -99,6 +107,14 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = [
+    
+    'django.contrib.auth.backends.ModelBackend',
+
+    # `allauth` specific authentication methods, such as login by email
+    'allauth.account.auth_backends.AuthenticationBackend',
+    
+]
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
@@ -115,8 +131,22 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-
+STATICFILES_DIRS = [BASE_DIR / "static"]
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ACCOUNT_EMAIL_REQUIRED = True 
+# ACCOUNT_USERNAME_REQUIRED = False 
+# ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True 
+# ACCOUNT_SESSION_REMEMBER = True 
+# ACCOUNT_AUTHENTICATION_METHOD = 'username' 
+
+ACCOUNT_LOGIN_METHODS = {'username', 'email'}
+ACCOUNT_SIGNUP_FIELDS = ['username', 'email*', 'password1*', 'password2*']
+ACCOUNT_SESSION_REMEMBER = True 
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_ALLOW_REGISTRATION = False
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+SITE_ID = 1

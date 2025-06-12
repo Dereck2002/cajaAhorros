@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container py-4">
+  <h1 class="mb-4 display-5 fw-bold text-primary">
+    <i class="bi bi-speedometer2 me-2"></i>Panel de Control
+  </h1>
+
+  <!-- Tarjetas resumen -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-6 col-xl-3">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body">
+          <h6 class="text-muted">Socios activos</h6>
+          <h3 class="fw-bold text-primary">{{ socios_activos }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+      <div class="card shadow-sm border-0 h-100 bg-success-subtle">
+        <div class="card-body">
+          <h6 class="text-muted">Total Aportes</h6>
+          <h3 class="fw-bold text-success">$ {{ total_aportes|floatformat:2|intcomma }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+      <div class="card shadow-sm border-0 h-100 bg-danger-subtle">
+        <div class="card-body">
+          <h6 class="text-muted">Total Retiros</h6>
+          <h3 class="fw-bold text-danger">$ {{ total_retiros|floatformat:2|intcomma }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+      <div class="card shadow-sm border-0 h-100 bg-info-subtle">
+        <div class="card-body">
+          <h6 class="text-muted">Saldo Total</h6>
+          <h3 class="fw-bold text-info">$ {{ saldo_total|floatformat:2|intcomma }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráfico de barras -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h5 class="card-title mb-4">📈 Aportes vs Retiros (Últimos 6 meses)</h5>
+      <canvas id="movimientosChart" height="100"></canvas>
+    </div>
+  </div>
+
+  <!-- Estado de préstamos -->
+  <div class="row g-3 mb-4">
+    {% for p in prestamos_estado %}
+    <div class="col-6 col-md-3">
+      <div class="card shadow-sm text-center border-0 bg-light">
+        <div class="card-body">
+          <h6 class="text-muted">{{ p.estado }}</h6>
+          <h4 class="fw-bold">{{ p.cantidad }}</h4>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Tabla de préstamos recientes -->
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      <h5 class="card-title mb-3">📄 Últimos Préstamos</h5>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Socio</th>
+              <th>Estado</th>
+              <th>Cantidad</th>
+              <th>Fecha</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in prestamos_recientes %}
+            <tr>
+              <td>{{ p.socio.nombre }} {{ p.socio.apellido }}</td>
+              <td><span class="badge bg-secondary">{{ p.estado }}</span></td>
+              <td>$ {{ p.cantidad_solicitada|floatformat:2|intcomma }}</td>
+              <td>{{ p.fecha_prestamo|date:"d/m/Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="text-center text-muted py-3">No hay préstamos recientes.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById('movimientosChart').getContext('2d');
+  const movimientosChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: [{% for m in movimientos_por_mes %}'{{ m.mes|date:"F" }}',{% endfor %}],
+      datasets: [
+        {
+          label: 'Aportes',
+          backgroundColor: '#198754',
+          data: [{% for m in movimientos_por_mes %}{{ m.total_entradas|floatformat:2 }},{% endfor %}]
+        },
+        {
+          label: 'Retiros',
+          backgroundColor: '#dc3545',
+          data: [{% for m in movimientos_por_mes %}{{ m.total_salidas|floatformat:2 }},{% endfor %}]
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

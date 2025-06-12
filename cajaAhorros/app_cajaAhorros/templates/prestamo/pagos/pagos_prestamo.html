@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Amortización Préstamo #{{ prestamo.id }}{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Tabla de Amortización - Préstamo #{{ prestamo.id }}</h2>
+
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <a href="{% url 'exportar_amortizacion_pdf' prestamo.id %}" class="btn btn-danger btn-sm" target="_blank">
+        <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+    </a>
+    <a href="{% url 'exportar_amortizacion_excel' prestamo.id %}" class="btn btn-success btn-sm" target="_blank">
+        <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+    </a>
+    <button onclick="window.print()" class="btn btn-info btn-sm text-white">
+        <i class="bi bi-printer"></i> Imprimir tabla de amortización
+    </button>
+</div>
+
+<div class="mb-3">
+    <strong>Solicitante:</strong> {{ prestamo.socio }}<br>
+    <strong>Fecha del Crédito:</strong> {{ prestamo.fecha_aprobacion|date:"d/m/Y" }}<br>
+    <strong>Plazo:</strong> {{ prestamo.plazo }} meses<br>
+    <strong>Monto Aprobado:</strong> ${{ prestamo.cantidad_aprobada|floatformat:2 }}<br>
+    <strong>Interés:</strong> {{ prestamo.interes }}%
+</div>
+
+<div class="table-responsive">
+    <table class="table align-middle table-bordered table-hover">
+        <thead class="table-light text-uppercase text-center">
+            <tr>
+                <th>Fecha de Pago</th>
+                <th>Descripción</th>
+                <th class="text-end">Saldo</th>
+                <th class="text-end">Capital</th>
+                <th class="text-end">Interés</th>
+                <th class="text-end">Valor Cuota</th>
+                <th>Estado</th>
+                <th>Registrar Pago</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pago in pagos %}
+            <tr class="{% cycle 'table-white' 'table-light' %}">
+                <td>{{ pago.fecha_a_pagar|date:"d \d\e F \d\e\l Y" }}</td>
+                <td>Cuota {{ pago.cuota_pago }} de {{ prestamo.plazo }}</td>
+                <td class="text-end">{{ pago.saldo_pago|floatformat:2 }}</td>
+                <td class="text-end">{{ pago.capital_pago|floatformat:2 }}</td>
+                <td class="text-end">{{ pago.interes_pago|floatformat:2 }}</td>
+                <td class="text-end">{{ pago.valor_cuota_pago|floatformat:2 }}</td>
+                <td class="text-center">
+                    {% if pago.estado %}
+                        <span class="badge bg-success">Pagado</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">Por pagar</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    {% if not pago.estado %}
+                        <form method="POST" action="{% url 'registrar_pago' pago.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success btn-sm" title="Registrar pago"
+                                    onclick="return confirm('¿Confirmar el registro de este pago?');">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </form>
+                    {% else %}
+                        <span class="text-muted">Pago el {{ pago.fecha_pago|date:"d \d\e F \d\e\l Y" }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    .table-responsive, .table-responsive * {
+        visibility: visible;
+    }
+    .table-responsive {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}

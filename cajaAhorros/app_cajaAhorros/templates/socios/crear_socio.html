@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %} 
+
+{% block title %}
+    <h2>{% if form.instance.pk %}Editar Socio{% else %}Nuevo Socio{% endif %}</h2>
+{% endblock title %}
+
+    {% if form.instance.pk and form.instance.foto %}
+        <p>Foto actual:</p>
+        <img src="{{ form.instance.foto.url }}" alt="Foto del socio" width="150" height="150">
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn btn-primary" type="submit">Guardar</button>
+        <a href="{% url 'socio_list' %}">Cancelar</a>
+    </form>
+
+{% endblock content %}
