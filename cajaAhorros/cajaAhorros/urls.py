@@ -50,6 +50,10 @@ urlpatterns = [
     path('prestamo/<int:pk>/exportar-pdf/', views.exportar_amortizacion_pdf, name='exportar_amortizacion_pdf'),
     path('prestamo/<int:pk>/exportar-excel/', views.exportar_amortizacion_excel, name='exportar_amortizacion_excel'),
     path('configuracion/', views.configuracion, name='configuracion'),
+    path('gastos/', views.gastos_administrativos, name='gastos_admin'),
+    path('gastos/<str:action>/', views.gastos_administrativos, name='gastos_administrativos_action'),
+    path('gastos/editar/<int:pk>/', views.gastos_administrativos, {'action': 'editar'}, name='gasto_editar'),
+    path('gastos/<str:action>/<int:pk>/', views.gastos_administrativos, name='gastos_administrativos_action_pk'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

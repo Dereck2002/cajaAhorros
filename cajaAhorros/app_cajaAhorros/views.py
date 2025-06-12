@@ -5,7 +5,7 @@ from django.db.models.functions import TruncMonth
 from django.db.models import Count, Sum
 from django.contrib import messages
 from .models import Movimiento, Socio, Cargo, Prestamo, PagoPrestamo, Configuracion, GastosAdministrativos
-from .forms import SocioForm, PrestamoForm, ConfiguracionForm
+from .forms import SocioForm, PrestamoForm, ConfiguracionForm, GastoAdministrativoForm
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from django.core.paginator import Paginator
@@ -775,3 +775,51 @@ def configuracion(request):
     return render(request, 'configuracion/configuracion.html', {'form': form, 'configuracion': config})
 
 
+#Gastos administrativos
+def gastos_administrativos(request, action=None, pk=None):
+    if action == 'agregar':
+        form = GastoAdministrativoForm(request.POST or None)
+        if request.method == 'POST' and form.is_valid():
+            nuevo = form.save(commit=False)
+            ultimo = GastosAdministrativos.objects.order_by('-fecha').first()
+            saldo_anterior = ultimo.saldo if ultimo else Decimal('0.00')
+            nuevo.saldo = saldo_anterior + nuevo.entrada - nuevo.salida
+            nuevo.save()
+            return redirect('gastos_admin')
+        return render(request, 'gastos/form_gasto_admin.html', {
+            'form': form,
+            'modo': 'Agregar'
+        })
+
+    elif action == 'editar' and pk:
+        gasto = get_object_or_404(GastosAdministrativos, pk=pk)
+        form = GastoAdministrativoForm(request.POST or None, instance=gasto)
+        if request.method == 'POST' and form.is_valid():
+            gasto = form.save(commit=False)
+            # Aquí podrías recalcular saldo si es necesario, o mantenerlo igual
+            gasto.save()
+            return redirect('gastos_admin')
+        return render(request, 'gastos/form_gasto_admin.html', {
+            'form': form,
+            'modo': 'Editar'
+        })
+
+    elif action == 'eliminar' and pk:
+        gasto = get_object_or_404(GastosAdministrativos, pk=pk)
+        if request.method == 'POST':
+            gasto.delete()
+            return redirect('gastos_admin')
+        return render(request, 'gastos/eliminar_gasto_admin.html', {'gasto': gasto})
+
+    # Lista de gastos por defecto
+    gastos = GastosAdministrativos.objects.exclude(id__isnull=True).order_by('-fecha')
+    total_entrada = gastos.aggregate(total=Sum('entrada'))['total'] or 0
+    total_salida = gastos.aggregate(total=Sum('salida'))['total'] or 0
+    saldo_actual = total_entrada - total_salida
+
+    return render(request, 'gastos/gastos_admin_list.html', {
+        'gastos': gastos,
+        'total_entrada': total_entrada,
+        'total_salida': total_salida,
+        'saldo_actual': saldo_actual
+    })

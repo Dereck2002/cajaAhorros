@@ -1,5 +1,5 @@
 from django import forms
-from .models import Socio, Prestamo, Configuracion
+from .models import Socio, Prestamo, Configuracion, GastosAdministrativos
 
 class SocioForm(forms.ModelForm):
     class Meta:
@@ -90,5 +90,17 @@ class ConfiguracionForm(forms.ModelForm):
             'plazo_maximo': forms.NumberInput(attrs={'class': 'form-control'}),
             'aporte_inicial': forms.NumberInput(attrs={'class': 'form-control'}),
             'gastos_adm': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+
+class GastoAdministrativoForm(forms.ModelForm):
+    class Meta:
+        model = GastosAdministrativos
+        fields = ['fecha', 'descripcion', 'entrada', 'salida']
+        widgets = {
+            'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'descripcion': forms.TextInput(attrs={'class': 'form-control'}),
+            'entrada': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control'}),
+            'salida': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control'}),
         }
 
