@@ -15,11 +15,13 @@
     <table class="table table-bordered">
         <thead class="table-light">
             <tr>
-                <th>Socio</th>
-                <th>Garantía</th>
-                <th>Cantidad Solicitada</th>
-                <th>Plazo (meses)</th>
-                <th>Interés (%)</th>
+                <th>Fecha <br> Aprobacion</th>
+                <th>Solicitante</th>
+                <th>Garante</th>
+                <th>Cantidad<br> Solicitada</th>
+                <th>Cantidad <br>Aprobada</th>
+                <th>Plazo</th>
+                
                 <th>Estado</th>
                 <th>Acciones</th>
             </tr>
@@ -27,11 +29,13 @@
         <tbody>
         {% for prestamo in prestamos %}
             <tr>
+                <td>{{ prestamo.fecha_aprobacion|date:"d/m/Y" }}</td>
                 <td>{{ prestamo.socio }}</td>
                 <td>{{ prestamo.garante }}</td>
                 <td>{{ prestamo.cantidad_solicitada }}</td>
+                <td>{{ prestamo.cantidad_aprobada }}</td>
                 <td>{{ prestamo.plazo }}</td>
-                <td>{{ prestamo.interes }}</td>
+                
                 <td>{{ prestamo.estado }}</td>
                 <td>
                     {# El Presidente (que no tiene estos permisos) no verá ningún botón. #}

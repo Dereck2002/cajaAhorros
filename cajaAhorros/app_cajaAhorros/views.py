@@ -131,8 +131,8 @@ def crear_socio(request):
             nuevo_saldo_gasto = saldo_anterior_gasto + gasto_adm
 
             GastosAdministrativos.objects.create(
-                fecha=fecha_hoy,
-                descripcion="Gastos administrativos por nuevo socio",
+                fecha = socio.fecha_ingreso,
+                descripcion="Ingreso por nuevo socio: " + socio.nombre + " " + socio.apellido,
                 entrada=gasto_adm,
                 salida=Decimal('0.00'),
                 saldo=nuevo_saldo_gasto
@@ -812,7 +812,7 @@ def gastos_administrativos(request, action=None, pk=None):
         return render(request, 'gastos/eliminar_gasto_admin.html', {'gasto': gasto})
 
     # Lista de gastos por defecto
-    gastos = GastosAdministrativos.objects.exclude(id__isnull=True).order_by('-fecha')
+    gastos = GastosAdministrativos.objects.exclude(id__isnull=True)
     total_entrada = gastos.aggregate(total=Sum('entrada'))['total'] or 0
     total_salida = gastos.aggregate(total=Sum('salida'))['total'] or 0
     saldo_actual = total_entrada - total_salida

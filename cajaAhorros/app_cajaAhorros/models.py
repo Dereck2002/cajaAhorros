@@ -22,7 +22,7 @@ class Socio(models.Model):
     activo = models.BooleanField(default=True) 
 
     def __str__(self):
-        return f"{self.nombre} {self.apellido} ({self.cedula})"
+        return f"{self.nombre} {self.apellido}"
 
 
 class Movimiento(models.Model):
@@ -68,7 +68,7 @@ class Configuracion(models.Model):
     plazo_maximo = models.IntegerField()
     aporte_inicial = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     gastos_adm = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-
+    tasa_prestamo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     def __str__(self):
         return self.nombre_empresa
     
