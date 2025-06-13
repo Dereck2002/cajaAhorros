@@ -2,6 +2,19 @@
 {% load static %}
 
 {% block content %}
+<!-- botones de exportacion pdf, xls, imprimir -->
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <a href="{% url 'exportar_socios_pdf' %}" class="btn btn-danger btn-sm" target="_blank">
+        <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+    </a>
+    <a href="{% url 'exportar_socios_excel' %}" class="btn btn-success btn-sm" target="_blank">
+        <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+    </a>
+    <a href="{% url 'imprimir_socios' %}" target="_blank" class="btn btn-info btn-sm">
+    <i class="bi bi-printer"></i> Imprimir Socios
+</a>
+</div>
+
 <div class="container">
     {% block title %}<h1>Listado de Socios</h1>{% endblock title %}
 
@@ -96,6 +109,32 @@
         {% endif %}
     </div>
 </div>
+<style>
+    @media print {
+        body * {
+            visibility: hidden !important;
+        }
+
+        #imprimible,
+        #imprimible * {
+            visibility: visible !important;
+        }
+
+        #imprimible {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        .btn,
+        .bi {
+            display: none !important;
+        }
+    }
+</style>
 {% include "includes/modal_confirmacion.html" %}
 {% include "includes/modal_agregar_cargos.html" %}
 {% endblock content %}

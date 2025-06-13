@@ -18,6 +18,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from django.http import HttpResponse
 from openpyxl import Workbook
 from django.utils.timezone import now
+from openpyxl.styles import Font
 
 # Importamos el decorador de roles que creamos
 from .decorators import role_required
@@ -514,6 +515,23 @@ def crear_o_editar_prestamo(request, pk=None):
 def aprobar_prestamo(request, pk):
     prestamo = get_object_or_404(Prestamo, pk=pk)
     prestamo.estado = 'Aprobado'
+    # Obtener la configuración activa
+    config = Configuracion.objects.first()
+    # Registrar gasto administrativo
+    saldo_gasto = GastosAdministrativos.objects.order_by('-fecha').first()
+    saldo_anterior_gasto = saldo_gasto.saldo if saldo_gasto else Decimal('0.00')
+    nuevo_saldo_gasto = saldo_anterior_gasto + (prestamo.cantidad_aprobada * config.tasa_prestamo) / Decimal('100.00')
+   # Crear gasto administrativo
+    gasto = GastosAdministrativos(
+        fecha=prestamo.fecha_aprobacion,
+        descripcion=f'Tasa del {config.tasa_prestamo}% por préstamo aprobado de ' + str(prestamo.socio),
+        entrada=(prestamo.cantidad_aprobada * config.tasa_prestamo) / Decimal('100.00'),
+        salida=Decimal('0.00'),
+        saldo=nuevo_saldo_gasto
+
+    )
+    gasto.save()
+
     #prestamo.fecha_aprobacion = date.today()
     prestamo.save()
     generar_amortizacion(prestamo)
@@ -655,17 +673,29 @@ def generar_amortizacion(prestamo):
 def exportar_amortizacion_pdf(request, pk):
     prestamo = Prestamo.objects.get(pk=pk)
     pagos = prestamo.pagos.all()
-
+    socio = prestamo.socio
+    
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="amortizacion_prestamo_{pk}.pdf"'
 
     doc = SimpleDocTemplate(response, pagesize=A4)
     elements = []
     styles = getSampleStyleSheet()
+    # Título principal
 
     elements.append(Paragraph(f'Tabla de Amortización - Préstamo #{pk}', styles['Title']))
     elements.append(Spacer(1, 12))
-
+# Información del solicitante
+    info_solicitante = f"""
+        <strong>Solicitante:</strong> {socio.nombre} {socio.apellido}<br/>
+        <strong>Fecha del Aprobación:</strong> {prestamo.fecha_aprobacion.strftime('%d/%m/%Y')}<br/>
+        <strong>Plazo:</strong> {prestamo.plazo} meses<br/>
+        <strong>Monto Aprobado:</strong> ${prestamo.cantidad_aprobada:,.2f}<br/>
+        <strong>Interés:</strong> {prestamo.interes:,.2f}%
+    """
+    elements.append(Paragraph(info_solicitante, styles['Normal']))
+    elements.append(Spacer(1, 12))
+     # Cabecera de tabla
     datos = [['#', 'Saldo', 'Capital', 'Interés', 'Cuota', 'Fecha a Pagar', 'Estado']]
 
     for pago in pagos:
@@ -696,11 +726,19 @@ def exportar_amortizacion_pdf(request, pk):
 def exportar_amortizacion_excel(request, pk):
     prestamo = Prestamo.objects.get(pk=pk)
     pagos = prestamo.pagos.all()
-
+    socio = prestamo.socio
     wb = Workbook()
     ws = wb.active
     ws.title = "Amortización"
 
+    # 🔹 Información del solicitante
+    ws.append(["Solicitante:", f"{socio.nombre} {socio.apellido}"])
+    ws.append(["Fecha del Aprobación:", prestamo.fecha_aprobacion.strftime('%d/%m/%Y') if prestamo.fecha_aprobacion else ""])
+    ws.append(["Plazo (meses):", prestamo.plazo])
+    ws.append(["Monto Aprobado:", float(prestamo.cantidad_aprobada)])
+    ws.append(["Interés (%):", float(prestamo.interes)])
+    ws.append([])  # Fila vacía
+     # 🔹 Cabecera de tabla
     headers = ['#', 'Saldo', 'Capital', 'Interés', 'Cuota', 'Fecha a Pagar', 'Estado']
     ws.append(headers)
 
@@ -717,6 +755,85 @@ def exportar_amortizacion_excel(request, pk):
 
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename="amortizacion_prestamo_{pk}.xlsx"'
+    wb.save(response)
+    return response
+
+def exportar_socios_pdf(request):
+    socios = Socio.objects.filter(activo=True).order_by('apellido')
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="listado_socios.pdf"'
+
+    doc = SimpleDocTemplate(response, pagesize=A4)
+    elements = []
+    styles = getSampleStyleSheet()
+
+    # Título
+    elements.append(Paragraph("Listado de Socios Activos", styles['Title']))
+    elements.append(Spacer(1, 12))
+
+    # Cabecera de tabla
+    datos = [['#', 'Cédula', 'Nombres', 'Apellidos', 'Teléfono', 'Email', 'Fecha de Ingreso']]
+
+    # Filas de socios
+    for i, socio in enumerate(socios, start=1):
+        datos.append([
+            i,
+            socio.cedula,
+            socio.nombre,
+            socio.apellido,
+            socio.telefono or '',
+            socio.email or '',
+            socio.fecha_ingreso.strftime('%d/%m/%Y')
+        ])
+
+    tabla = Table(datos, repeatRows=1)
+    tabla.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+    ]))
+
+    elements.append(tabla)
+    doc.build(elements)
+    return response
+
+def exportar_socios_excel(request):
+    socios = Socio.objects.filter(activo=True).order_by('apellido')
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Socios Activos"
+
+    # Cabecera
+    headers = ['#', 'Cédula', 'Nombres', 'Apellidos', 'Teléfono', 'Email', 'Fecha de Ingreso']
+    ws.append(headers)
+
+    # Estilo para la cabecera
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=1, column=col).font = Font(bold=True)
+
+    # Contenido
+    for i, socio in enumerate(socios, start=1):
+        ws.append([
+            i,
+            socio.cedula,
+            socio.nombre,
+            socio.apellido,
+            socio.telefono or '',
+            socio.email or '',
+            socio.fecha_ingreso.strftime('%d/%m/%Y')
+        ])
+
+    # Generar archivo
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="listado_socios.xlsx"'
     wb.save(response)
     return response
 
@@ -823,3 +940,6 @@ def gastos_administrativos(request, action=None, pk=None):
         'total_salida': total_salida,
         'saldo_actual': saldo_actual
     })
+def imprimir_socios(request):
+    socios = Socio.objects.filter(activo=True).order_by('apellido')
+    return render(request, 'socios/imprimir/socios_imprimir.html', {'socios': socios})

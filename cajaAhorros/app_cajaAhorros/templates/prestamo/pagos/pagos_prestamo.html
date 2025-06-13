@@ -3,8 +3,8 @@
 {% block title %}Amortización Préstamo #{{ prestamo.id }}{% endblock %}
 
 {% block content %}
-<h2 class="mb-4">Tabla de Amortización - Préstamo #{{ prestamo.id }}</h2>
 
+<!-- botones de exportacion pdf, xls, imprimir -->
 <div class="mb-3 d-flex gap-2 flex-wrap">
     <a href="{% url 'exportar_amortizacion_pdf' prestamo.id %}" class="btn btn-danger btn-sm" target="_blank">
         <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
@@ -16,71 +16,73 @@
         <i class="bi bi-printer"></i> Imprimir tabla de amortización
     </button>
 </div>
+<div id="imprimible">
+    <h2 class="mb-4">Tabla de Amortización - Préstamo #{{ prestamo.id }}</h2>
+    <div class="mb-3">
+        <strong>Solicitante:</strong> {{ prestamo.socio }}<br>
+        <strong>Fecha del Aprobación:</strong> {{ prestamo.fecha_aprobacion|date:"d/m/Y" }}<br>
+        <strong>Plazo:</strong> {{ prestamo.plazo }} meses<br>
+        <strong>Monto Aprobado:</strong> ${{ prestamo.cantidad_aprobada|floatformat:2 }}<br>
+        <strong>Interés:</strong> {{ prestamo.interes }}%
+    </div>
 
-<div class="mb-3">
-    <strong>Solicitante:</strong> {{ prestamo.socio }}<br>
-    <strong>Fecha del Aprobación:</strong> {{ prestamo.fecha_aprobacion|date:"d/m/Y" }}<br>
-    <strong>Plazo:</strong> {{ prestamo.plazo }} meses<br>
-    <strong>Monto Aprobado:</strong> ${{ prestamo.cantidad_aprobada|floatformat:2 }}<br>
-    <strong>Interés:</strong> {{ prestamo.interes }}%
+    <div class="table-responsive">
+        <table class="table align-middle table-bordered table-hover">
+            <thead class="table-light text-uppercase text-center">
+                <tr>
+                    <th>Fecha a <br>Pagar</th>
+                    <th>Cuota</th>
+                    <th class="text-end">Saldo</th>
+                    <th class="text-end">Capital</th>
+                    <th class="text-end">Interés</th>
+                    <th class="text-end">Valor Cuota</th>
+                    <th>Comprobante</th>
+                    <th>Estado</th>
+                    <th>Registrar Pago</th>
+
+                </tr>
+            </thead>
+            <tbody>
+                {% for pago in pagos %}
+                <tr>
+                    <td>{{ pago.fecha_a_pagar|date:"d/m/Y" }}</td>
+                    <td>{{ pago.cuota_pago }}</td>
+                    <td class="text-end">{{ pago.saldo_pago|floatformat:2 }}</td>
+                    <td class="text-end">{{ pago.capital_pago|floatformat:2 }}</td>
+                    <td class="text-end">{{ pago.interes_pago|floatformat:2 }}</td>
+                    <td class="text-end">{{ pago.valor_cuota_pago|floatformat:2 }}</td>
+                    <td>
+                        {% if pago.comprobante_pago %}
+                        <img class="img-thumbnail" width="50" src="{{ pago.comprobante_pago.url }}" alt="Comprobante"
+                            onclick="verComprobante('{{ pago.comprobante_pago.url }}')" style="cursor:pointer;">
+                        {% else %}
+                        Sin comprobante
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if pago.estado %}
+                        <span class="badge bg-success">Pagado</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">Por pagar</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if not pago.estado %}
+                        <button class="btn btn-success btn-sm" onclick="abrirModalPago({{ pago.id }})">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                        {% else %}
+                        <span class="text-muted">Pago el {{ pago.fecha_pago|date:"d/m/Y" }}. {{ pago.detalle_pago}}
+                        </span>
+                        {% endif %}
+                    </td>
+
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
-
-<div class="table-responsive">
-    <table class="table align-middle table-bordered table-hover">
-        <thead class="table-light text-uppercase text-center">
-            <tr>
-                <th>Fecha a Pagar</th>
-                <th>Cuota</th>
-                <th class="text-end">Saldo</th>
-                <th class="text-end">Capital</th>
-                <th class="text-end">Interés</th>
-                <th class="text-end">Valor Cuota</th>
-                <th>Comprobante</th>
-                <th>Estado</th>
-                <th>Registrar Pago</th>
-                
-            </tr>
-        </thead>
-        <tbody>
-            {% for pago in pagos %}
-            <tr>
-                <td>{{ pago.fecha_a_pagar|date:"d/m/Y" }}</td>
-                <td>{{ pago.cuota_pago }}</td>
-                <td class="text-end">{{ pago.saldo_pago|floatformat:2 }}</td>
-                <td class="text-end">{{ pago.capital_pago|floatformat:2 }}</td>
-                <td class="text-end">{{ pago.interes_pago|floatformat:2 }}</td>
-                <td class="text-end">{{ pago.valor_cuota_pago|floatformat:2 }}</td>
-                <td>
-                    {% if pago.comprobante_pago %}
-                    <img class="img-thumbnail" width="50" src="{{ pago.comprobante_pago.url }}" alt="Comprobante"
-                        onclick="verComprobante('{{ pago.comprobante_pago.url }}')" style="cursor:pointer;">
-                    {% else %}
-                    Sin comprobante
-                    {% endif %}
-                </td>
-                <td class="text-center">
-                    {% if pago.estado %}
-                    <span class="badge bg-success">Pagado</span>
-                    {% else %}
-                    <span class="badge bg-warning text-dark">Por pagar</span>
-                    {% endif %}
-                </td>
-                <td class="text-center">
-                    {% if not pago.estado %}
-                    <button class="btn btn-success btn-sm" onclick="abrirModalPago({{ pago.id }})">
-                        <i class="bi bi-plus-lg"></i>
-                    </button>
-                    {% else %}
-                    <span class="text-muted">Pago el {{ pago.fecha_pago|date:"d/m/Y" }}. {{ pago.detalle_pago}} </span>
-                    {% endif %}
-                </td>
-                
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-
 <!-- Modal para registrar pago -->
 <div class="modal fade" id="modalPago" tabindex="-1" aria-labelledby="modalPagoLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -122,7 +124,8 @@
                 <h5 class="modal-title" id="modalComprobanteLabel">📷 Comprobante de Pago</h5>
                 <div class="d-flex align-items-center gap-2">
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="minimizarModal()">➖</button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="maximizarModal()">🗖</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                        onclick="maximizarModal()">🗖</button>
                     <button type="button" class="btn btn-sm btn-danger" data-bs-dismiss="modal">✖</button>
                 </div>
             </div>
@@ -136,19 +139,26 @@
 <style>
     @media print {
         body * {
-            visibility: hidden;
+            visibility: hidden !important;
         }
 
-        .table-responsive,
-        .table-responsive * {
-            visibility: visible;
+        #imprimible,
+        #imprimible * {
+            visibility: visible !important;
         }
 
-        .table-responsive {
+        #imprimible {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        .btn,
+        .bi {
+            display: none !important;
         }
     }
 </style>
