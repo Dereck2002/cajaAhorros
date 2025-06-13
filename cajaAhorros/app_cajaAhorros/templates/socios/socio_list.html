@@ -2,50 +2,53 @@
 {% load static %}
 
 {% block content %}
-<!-- botones de exportacion pdf, xls, imprimir -->
-<div class="mb-3 d-flex gap-2 flex-wrap">
-    <a href="{% url 'exportar_socios_pdf' %}" class="btn btn-danger btn-sm" target="_blank">
-        <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
-    </a>
-    <a href="{% url 'exportar_socios_excel' %}" class="btn btn-success btn-sm" target="_blank">
-        <i class="bi bi-file-earmark-excel"></i> Exportar Excel
-    </a>
-    <a href="{% url 'imprimir_socios' %}" target="_blank" class="btn btn-info btn-sm">
-    <i class="bi bi-printer"></i> Imprimir Socios
-</a>
-</div>
-
-<div class="container">
-    {% block title %}<h1>Listado de Socios</h1>{% endblock title %}
-
-    <!-- Botón para gestionar cargos y filtros -->
-    <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
-        
-        {# El botón "Nuevo Socio" solo se muestra si el usuario tiene el permiso específico #}
-        {% if perms.app_cajaAhorros.add_socio %}
-        <a href="{% url 'crear_socio' %}" class="btn btn-success">
-            <i class="bi bi-person-plus"></i> Nuevo Socio
-        </a>
-        {% endif %}
-
-        <form method="get" class="d-flex align-items-center mb-0">
-            <label for="filtro" class="me-2 mb-0">Filtrar por estado:</label>
-            <select name="filtro" id="filtro" onchange="this.form.submit()" class="form-select form-select-sm">
-                <option value="todos" {% if filtro == 'todos' %}selected{% endif %}>Todos</option>
-                <option value="al_dia" {% if filtro == 'al_dia' %}selected{% endif %}>Al día</option>
-                <option value="deudores" {% if filtro == 'deudores' %}selected{% endif %}>Deudores</option>
-            </select>
-        </form>
-        <input type="search" id="buscador" placeholder="Buscar..." onkeyup="filtrarTabla()" class="form-control form-control-sm" style="max-width: 200px;">
+<div class="container mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">📋 Listado de Socios</h3>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'exportar_socios_pdf' %}" class="btn btn-danger btn-sm" target="_blank">
+                <i class="bi bi-file-earmark-pdf"></i> PDF
+            </a>
+            <a href="{% url 'exportar_socios_excel' %}" class="btn btn-success btn-sm" target="_blank">
+                <i class="bi bi-file-earmark-excel"></i> Excel
+            </a>
+            <a href="{% url 'imprimir_socios' %}" target="_blank" class="btn btn-info btn-sm">
+                <i class="bi bi-printer"></i> Imprimir
+            </a>
+            {% if perms.app_cajaAhorros.add_socio %}
+            <a href="{% url 'crear_socio' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-person-plus"></i> Nuevo Socio
+            </a>
+            {% endif %}
+        </div>
     </div>
 
-    <!-- Tabla de socios -->
+    <!-- Filtro y buscador -->
+    <div class="row mb-3 align-items-end">
+        <div class="col-md-4">
+            <label for="filtro" class="form-label">Filtrar por estado</label>
+            <form method="get" id="filtroForm">
+                <select name="filtro" id="filtro" class="form-select" onchange="document.getElementById('filtroForm').submit();">
+                    <option value="todos" {% if filtro == "todos" %}selected{% endif %}>Todos</option>
+                    <option value="al_dia" {% if filtro == "al_dia" %}selected{% endif %}>Al día</option>
+                    <option value="deudores" {% if filtro == "deudores" %}selected{% endif %}>Deudores</option>
+                </select>
+            </form>
+        </div>
+        <div class="col-md-4 offset-md-4">
+            <label for="buscador" class="form-label">Buscar</label>
+            <input type="search" id="buscador" placeholder="Buscar..." onkeyup="filtrarTabla()"
+                   class="form-control">
+        </div>
+    </div>
+
+    <!-- Tabla -->
     <div class="table-responsive">
-        <table class="table table-bordered">
-            <thead>
+        <table class="table table-hover table-bordered align-middle text-center">
+            <thead class="table-light">
                 <tr>
                     <th>Cédula</th>
-                    <th>Nombres</th>
+                    <th>Nombre completo</th>
                     <th>Foto</th>
                     <th>Acciones</th>
                 </tr>
@@ -57,32 +60,29 @@
                     <td>{{ socio.nombre }} {{ socio.apellido }}</td>
                     <td>
                         {% if socio.foto %}
-                            <img class="img-thumbnail" width="50" src="{{ socio.foto.url }}" alt="Foto de {{ socio.nombre }}">
+                        <img class="rounded-circle shadow-sm" width="50" src="{{ socio.foto.url }}" alt="Foto">
                         {% else %}
-                            Sin foto
+                        <span class="text-muted">Sin foto</span>
                         {% endif %}
                     </td>
-                    <td>
-                        {# Botones visibles para todos los que pueden ver la lista #}
-                        <a href="{% url 'detalle_socio' socio.id %}" class="btn btn-outline-primary btn-sm" title="Ver detalle">
+                    <td class="text-center">
+                        <a href="{% url 'detalle_socio' socio.id %}" class="btn btn-sm btn-outline-primary" title="Ver detalle">
                             <i class="bi bi-eye"></i>
                         </a>
-                        <a href="{% url 'ver_aportaciones_socio' socio.id %}" class="btn btn-outline-info btn-sm" title="Ver aportaciones">
+                        <a href="{% url 'ver_aportaciones_socio' socio.id %}" class="btn btn-sm btn-outline-info" title="Aportaciones">
                             <i class="bi bi-wallet2"></i>
                         </a>
-                        
-                        {# Botones de edición y eliminación solo para roles con permisos específicos #}
                         {% if perms.app_cajaAhorros.change_socio %}
-                        <a href="{% url 'editar_socio' socio.id %}" class="btn btn-outline-warning btn-sm" title="Editar">
+                        <a href="{% url 'editar_socio' socio.id %}" class="btn btn-sm btn-outline-warning" title="Editar">
                             <i class="bi bi-pencil"></i>
                         </a>
                         {% endif %}
-
                         {% if perms.app_cajaAhorros.delete_socio %}
                         <form method="post" action="{% url 'eliminar_socio' socio.id %}" style="display:inline;">
                             {% csrf_token %}
-                            <button onclick="abrirModal('{{ socio.id }}', '{{ socio.nombre }} {{ socio.apellido }}', 'socio'); return false;"
-                                    class="btn btn-outline-danger btn-sm" title="Desactivar">
+                            <button
+                                onclick="abrirModal('{{ socio.id }}', '{{ socio.nombre }} {{ socio.apellido }}', 'socio'); return false;"
+                                class="btn btn-sm btn-outline-danger" title="Desactivar">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </form>
@@ -99,42 +99,26 @@
     </div>
 
     <!-- Paginación -->
-    <div style="margin-top: 20px;">
+    <div class="d-flex justify-content-between align-items-center mt-4">
         {% if socios.has_previous %}
-            <a href="?page={{ socios.previous_page_number }}&filtro={{ filtro }}">⬅ Anterior</a>
+        <a href="?page={{ socios.previous_page_number }}&filtro={{ filtro }}" class="btn btn-outline-secondary btn-sm">
+            ⬅ Anterior
+        </a>
+        {% else %}
+        <span></span>
         {% endif %}
+
         <span>Página {{ socios.number }} de {{ socios.paginator.num_pages }}</span>
+
         {% if socios.has_next %}
-            <a href="?page={{ socios.next_page_number }}&filtro={{ filtro }}">Siguiente ➡</a>
+        <a href="?page={{ socios.next_page_number }}&filtro={{ filtro }}" class="btn btn-outline-secondary btn-sm">
+            Siguiente ➡
+        </a>
         {% endif %}
     </div>
 </div>
-<style>
-    @media print {
-        body * {
-            visibility: hidden !important;
-        }
 
-        #imprimible,
-        #imprimible * {
-            visibility: visible !important;
-        }
-
-        #imprimible {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-        }
-
-        .btn,
-        .bi {
-            display: none !important;
-        }
-    }
-</style>
+<!-- Modal para confirmación -->
 {% include "includes/modal_confirmacion.html" %}
 {% include "includes/modal_agregar_cargos.html" %}
 {% endblock content %}
@@ -165,7 +149,8 @@
         document.getElementById('modalEliminar').style.display = 'none';
     }
 </script>
-<div id="modalEliminar" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+<div id="modalEliminar" class="modal"
+     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(0,0,0,0.5); align-items:center; justify-content:center;">
     <div style="background:white; padding:20px; border-radius:8px; text-align:center;">
         <p id="modalTexto">¿Estás seguro de que deseas desactivar?</p>
         <form id="formEliminar" method="post">

@@ -837,6 +837,169 @@ def exportar_socios_excel(request):
     wb.save(response)
     return response
 
+ # exportar listado de prestamos
+def exportar_prestamos_pdf(request):
+    prestamos = Prestamo.objects.all().order_by('-fecha_aprobacion')
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="prestamos_lista.pdf"'
+
+    doc = SimpleDocTemplate(response, pagesize=A4)
+    elements = []
+    styles = getSampleStyleSheet()
+
+    elements.append(Paragraph("📄 Lista de Préstamos", styles['Title']))
+    elements.append(Spacer(1, 12))
+
+    datos = [[
+        'Fecha Aprob', 'Solicitante', 'Garante', 
+        'Solicitado', 'Aprobado', 'Plazo', 'Estado'
+    ]]
+
+    for p in prestamos:
+        datos.append([
+            p.fecha_aprobacion.strftime('%d/%m/%Y') if p.fecha_aprobacion else '',
+            f"{p.socio.nombre} {p.socio.apellido}",
+            f"{p.garante.nombre} {p.garante.apellido}" if p.garante else '---',
+            f"${p.cantidad_solicitada:,.2f}",
+            f"${p.cantidad_aprobada:,.2f}" if p.cantidad_aprobada else '$0.00',
+            f"{p.plazo} meses",
+            p.estado
+        ])
+
+    tabla = Table(datos, repeatRows=1)
+    tabla.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+    ]))
+
+    elements.append(tabla)
+    doc.build(elements)
+    return response
+
+def exportar_prestamos_excel(request):
+    prestamos = Prestamo.objects.all().order_by('-fecha_aprobacion')
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Préstamos"
+
+    headers = [
+        'Fecha Aprobación', 'Solicitante', 'Garante', 
+        'Cantidad Solicitada', 'Cantidad Aprobada', 'Plazo', 'Estado'
+    ]
+    ws.append(headers)
+
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=1, column=col).font = Font(bold=True)
+
+    for p in prestamos:
+        ws.append([
+            p.fecha_aprobacion.strftime('%d/%m/%Y') if p.fecha_aprobacion else '',
+            f"{p.socio.nombre} {p.socio.apellido}",
+            f"{p.garante.nombre} {p.garante.apellido}" if p.garante else '',
+            float(p.cantidad_solicitada),
+            float(p.cantidad_aprobada or 0),
+            p.plazo,
+            p.estado
+        ])
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="prestamos_lista.xlsx"'
+    wb.save(response)
+    return response
+
+def exportar_gastosadministrativos_pdf(request):
+    gastos = GastosAdministrativos.objects.order_by('fecha')
+    total_entrada = sum(g.entrada for g in gastos)
+    total_salida = sum(g.salida for g in gastos)
+    saldo_actual = total_entrada - total_salida
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="gastos_administrativos.pdf"'
+
+    doc = SimpleDocTemplate(response, pagesize=A4)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    elements.append(Paragraph("📄 Reporte de Gastos Administrativos", styles['Title']))
+    elements.append(Spacer(1, 12))
+
+    data = [['Fecha', 'Descripción', 'Entrada', 'Salida', 'Saldo']]
+
+    for g in gastos:
+        data.append([
+            g.fecha.strftime('%d/%m/%Y'),
+            g.descripcion,
+            f"${g.entrada:,.2f}",
+            f"${g.salida:,.2f}",
+            f"${g.saldo:,.2f}"
+        ])
+
+    table = Table(data, repeatRows=1)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+    ]))
+
+    elements.append(table)
+    elements.append(Spacer(1, 12))
+    elements.append(Paragraph(f"<strong>Total Entradas:</strong> ${total_entrada:,.2f}", styles['Normal']))
+    elements.append(Paragraph(f"<strong>Total Salidas:</strong> ${total_salida:,.2f}", styles['Normal']))
+    elements.append(Paragraph(f"<strong>Saldo Actual:</strong> ${saldo_actual:,.2f}", styles['Normal']))
+
+    doc.build(elements)
+    return response
+
+
+def exportar_gastosadministrativos_excel(request):
+    gastos = GastosAdministrativos.objects.order_by('fecha')
+    total_entrada = sum(g.entrada for g in gastos)
+    total_salida = sum(g.salida for g in gastos)
+    saldo_actual = total_entrada - total_salida
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Gastos Administrativos"
+
+    headers = ['Fecha', 'Descripción', 'Entrada', 'Salida', 'Saldo']
+    ws.append(headers)
+
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=1, column=col).font = Font(bold=True)
+
+    for g in gastos:
+        ws.append([
+            g.fecha.strftime('%d/%m/%Y'),
+            g.descripcion,
+            float(g.entrada),
+            float(g.salida),
+            float(g.saldo),
+        ])
+
+    # Totales al final
+    ws.append([])
+    ws.append(['', 'Total Entradas', float(total_entrada)])
+    ws.append(['', 'Total Salidas', float(total_salida)])
+    ws.append(['', 'Saldo Actual', float(saldo_actual)])
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="gastos_administrativos.xlsx"'
+    wb.save(response)
+    return response
+
 #dashboard
 @login_required
 def dashboard(request):
