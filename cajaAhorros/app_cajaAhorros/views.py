@@ -43,12 +43,36 @@ def dashboard(request):
     if role == 'Tesorero':
         return redirect('prestamo_list') # El tesorero va a la lista de préstamos.
     
+    if role == 'Socio':
+        return redirect('mi_perfil')
     # El Presidente, Administrador y Superusuario van a la lista de socios como página principal.
     # No se muestra un panel de control, sino que se les dirige a la vista principal de la app.
     return redirect('socio_list')
 
 
 # --- Vistas de Socios ---
+@login_required
+@role_required(allowed_roles=['Socio'])
+def mi_perfil(request):
+    try:
+        socio = get_object_or_404(Socio, user=request.user)
+        movimientos = Movimiento.objects.filter(socio=socio).order_by('-fecha_movimiento')
+        prestamos = Prestamo.objects.filter(socio=socio).order_by('-fecha_prestamo')
+        
+        total_aportes = movimientos.filter(salida=0).aggregate(total=Sum('entrada'))['total'] or 0
+        total_retiros = movimientos.filter(entrada=0).aggregate(total=Sum('salida'))['total'] or 0
+        saldo = total_aportes - total_retiros
+        
+        context = {
+            'socio': socio,
+            'movimientos': movimientos,
+            'prestamos': prestamos,
+            'saldo': saldo
+        }
+        return render(request, 'socios/mi_perfil.html', context)
+    except Socio.DoesNotExist:
+        messages.error(request, "Tu cuenta de usuario no está enlazada a un registro de socio.")
+        return redirect('logout')
 @login_required
 @role_required(allowed_roles=['Presidente', 'Secretaria'])
 def socio_list(request):
@@ -1103,6 +1127,3 @@ def gastos_administrativos(request, action=None, pk=None):
         'total_salida': total_salida,
         'saldo_actual': saldo_actual
     })
-def imprimir_socios(request):
-    socios = Socio.objects.filter(activo=True).order_by('apellido')
-    return render(request, 'socios/imprimir/socios_imprimir.html', {'socios': socios})

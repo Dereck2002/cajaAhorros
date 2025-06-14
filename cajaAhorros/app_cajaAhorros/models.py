@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.contrib.auth.models import User
 class Rol(models.Model):
     nombre = models.CharField(max_length=50, unique=True)
     descripcion = models.TextField(blank=True, null=True)
@@ -9,6 +9,7 @@ class Rol(models.Model):
         return self.nombre
 
 class Socio(models.Model):
+    user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True)
     cedula = models.CharField(max_length=15, unique=True)
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
