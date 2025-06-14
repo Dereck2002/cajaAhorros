@@ -1,23 +1,21 @@
 {% extends "base.html" %}
 
-{% block title %}Amortización Préstamo #{{ prestamo.id }}{% endblock %}
-
 {% block content %}
+{% block title %}<h2>Tabla de Amortización - Préstamo #{{ prestamo.id }}</h2>{% endblock %}
 
 <!-- botones de exportacion pdf, xls, imprimir -->
-<div class="mb-3 d-flex gap-2 flex-wrap">
+<div id="imprimible">
+    <div class="d-flex flex-wrap justify-content-end align-items-center mb-2">
+    <div class="mb-3 d-flex gap-2 flex-wrap">
     <a href="{% url 'exportar_amortizacion_pdf' prestamo.id %}" class="btn btn-danger btn-sm" target="_blank">
         <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
     </a>
     <a href="{% url 'exportar_amortizacion_excel' prestamo.id %}" class="btn btn-success btn-sm" target="_blank">
         <i class="bi bi-file-earmark-excel"></i> Exportar Excel
     </a>
-    <button onclick="window.print()" class="btn btn-info btn-sm text-white">
-        <i class="bi bi-printer"></i> Imprimir tabla de amortización
-    </button>
 </div>
-<div id="imprimible">
-    <h2 class="mb-4">Tabla de Amortización - Préstamo #{{ prestamo.id }}</h2>
+</div>
+    
     <div class="mb-3">
         <strong>Solicitante:</strong> {{ prestamo.socio }}<br>
         <strong>Fecha del Aprobación:</strong> {{ prestamo.fecha_aprobacion|date:"d/m/Y" }}<br>
