@@ -5,7 +5,7 @@ from django.db.models.functions import TruncMonth
 from django.db.models import Count, Sum
 from django.contrib import messages
 from .models import Movimiento, Socio, Cargo, Prestamo, PagoPrestamo, Configuracion, GastosAdministrativos
-from .forms import SocioForm, PrestamoForm, ConfiguracionForm
+from .forms import SocioForm, PrestamoForm, ConfiguracionForm, GastoAdministrativoForm
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from django.core.paginator import Paginator
@@ -18,6 +18,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from django.http import HttpResponse
 from openpyxl import Workbook
 from django.utils.timezone import now
+from openpyxl.styles import Font
 
 # Importamos el decorador de roles que creamos
 from .decorators import role_required
@@ -131,8 +132,8 @@ def crear_socio(request):
             nuevo_saldo_gasto = saldo_anterior_gasto + gasto_adm
 
             GastosAdministrativos.objects.create(
-                fecha=fecha_hoy,
-                descripcion="Gastos administrativos por nuevo socio",
+                fecha = socio.fecha_ingreso,
+                descripcion="Ingreso por nuevo socio: " + socio.nombre + " " + socio.apellido,
                 entrada=gasto_adm,
                 salida=Decimal('0.00'),
                 saldo=nuevo_saldo_gasto
@@ -509,12 +510,29 @@ def crear_o_editar_prestamo(request, pk=None):
     return render(request, 'prestamo/crear_editar_prestamo.html', {'form': form})
 
 
-#aprovar prestamo
+#aprobar prestamo
 @require_POST
 def aprobar_prestamo(request, pk):
     prestamo = get_object_or_404(Prestamo, pk=pk)
     prestamo.estado = 'Aprobado'
-    prestamo.fecha_aprobacion = date.today()
+    # Obtener la configuración activa
+    config = Configuracion.objects.first()
+    # Registrar gasto administrativo
+    saldo_gasto = GastosAdministrativos.objects.order_by('-fecha').first()
+    saldo_anterior_gasto = saldo_gasto.saldo if saldo_gasto else Decimal('0.00')
+    nuevo_saldo_gasto = saldo_anterior_gasto + (prestamo.cantidad_aprobada * config.tasa_prestamo) / Decimal('100.00')
+   # Crear gasto administrativo
+    gasto = GastosAdministrativos(
+        fecha=prestamo.fecha_aprobacion,
+        descripcion=f'Tasa del {config.tasa_prestamo}% por préstamo aprobado de ' + str(prestamo.socio),
+        entrada=(prestamo.cantidad_aprobada * config.tasa_prestamo) / Decimal('100.00'),
+        salida=Decimal('0.00'),
+        saldo=nuevo_saldo_gasto
+
+    )
+    gasto.save()
+
+    #prestamo.fecha_aprobacion = date.today()
     prestamo.save()
     generar_amortizacion(prestamo)
     return redirect('prestamo_list')
@@ -540,16 +558,23 @@ def pagos_prestamo(request, prestamo_id):
         'pagos': pagos,
     })
 
-#registros de pagos
+#registros de pagos de  prestamos
 @require_POST
 @login_required
 def registrar_pago(request, pago_id):
     pago = get_object_or_404(PagoPrestamo, id=pago_id)
     prestamo = pago.prestamo
-
+# Captura datos del formulario modal
+    fecha_pago = request.POST.get('fecha_pago')
+    detalle_pago = request.POST.get('detalle_pago')
+    comprobante = request.FILES.get('comprobante_pago')
     # Marcar el pago como realizado
     pago.estado = True
-    pago.fecha_pago = timezone.now().date()
+    pago.fecha_pago = fecha_pago or timezone.now().date()
+    pago.detalle_pago = detalle_pago
+    if comprobante:
+        pago.comprobante_pago = comprobante
+    
     pago.save()
 
     # Verificar si ya se completaron todos los pagos
@@ -648,17 +673,29 @@ def generar_amortizacion(prestamo):
 def exportar_amortizacion_pdf(request, pk):
     prestamo = Prestamo.objects.get(pk=pk)
     pagos = prestamo.pagos.all()
-
+    socio = prestamo.socio
+    
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="amortizacion_prestamo_{pk}.pdf"'
 
     doc = SimpleDocTemplate(response, pagesize=A4)
     elements = []
     styles = getSampleStyleSheet()
+    # Título principal
 
     elements.append(Paragraph(f'Tabla de Amortización - Préstamo #{pk}', styles['Title']))
     elements.append(Spacer(1, 12))
-
+# Información del solicitante
+    info_solicitante = f"""
+        <strong>Solicitante:</strong> {socio.nombre} {socio.apellido}<br/>
+        <strong>Fecha del Aprobación:</strong> {prestamo.fecha_aprobacion.strftime('%d/%m/%Y')}<br/>
+        <strong>Plazo:</strong> {prestamo.plazo} meses<br/>
+        <strong>Monto Aprobado:</strong> ${prestamo.cantidad_aprobada:,.2f}<br/>
+        <strong>Interés:</strong> {prestamo.interes:,.2f}%
+    """
+    elements.append(Paragraph(info_solicitante, styles['Normal']))
+    elements.append(Spacer(1, 12))
+     # Cabecera de tabla
     datos = [['#', 'Saldo', 'Capital', 'Interés', 'Cuota', 'Fecha a Pagar', 'Estado']]
 
     for pago in pagos:
@@ -689,11 +726,19 @@ def exportar_amortizacion_pdf(request, pk):
 def exportar_amortizacion_excel(request, pk):
     prestamo = Prestamo.objects.get(pk=pk)
     pagos = prestamo.pagos.all()
-
+    socio = prestamo.socio
     wb = Workbook()
     ws = wb.active
     ws.title = "Amortización"
 
+    # 🔹 Información del solicitante
+    ws.append(["Solicitante:", f"{socio.nombre} {socio.apellido}"])
+    ws.append(["Fecha del Aprobación:", prestamo.fecha_aprobacion.strftime('%d/%m/%Y') if prestamo.fecha_aprobacion else ""])
+    ws.append(["Plazo (meses):", prestamo.plazo])
+    ws.append(["Monto Aprobado:", float(prestamo.cantidad_aprobada)])
+    ws.append(["Interés (%):", float(prestamo.interes)])
+    ws.append([])  # Fila vacía
+     # 🔹 Cabecera de tabla
     headers = ['#', 'Saldo', 'Capital', 'Interés', 'Cuota', 'Fecha a Pagar', 'Estado']
     ws.append(headers)
 
@@ -713,6 +758,248 @@ def exportar_amortizacion_excel(request, pk):
     wb.save(response)
     return response
 
+def exportar_socios_pdf(request):
+    socios = Socio.objects.filter(activo=True).order_by('apellido')
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="listado_socios.pdf"'
+
+    doc = SimpleDocTemplate(response, pagesize=A4)
+    elements = []
+    styles = getSampleStyleSheet()
+
+    # Título
+    elements.append(Paragraph("Listado de Socios Activos", styles['Title']))
+    elements.append(Spacer(1, 12))
+
+    # Cabecera de tabla
+    datos = [['#', 'Cédula', 'Nombres', 'Apellidos', 'Teléfono', 'Email', 'Fecha de Ingreso']]
+
+    # Filas de socios
+    for i, socio in enumerate(socios, start=1):
+        datos.append([
+            i,
+            socio.cedula,
+            socio.nombre,
+            socio.apellido,
+            socio.telefono or '',
+            socio.email or '',
+            socio.fecha_ingreso.strftime('%d/%m/%Y')
+        ])
+
+    tabla = Table(datos, repeatRows=1)
+    tabla.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+    ]))
+
+    elements.append(tabla)
+    doc.build(elements)
+    return response
+
+def exportar_socios_excel(request):
+    socios = Socio.objects.filter(activo=True).order_by('apellido')
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Socios Activos"
+
+    # Cabecera
+    headers = ['#', 'Cédula', 'Nombres', 'Apellidos', 'Teléfono', 'Email', 'Fecha de Ingreso']
+    ws.append(headers)
+
+    # Estilo para la cabecera
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=1, column=col).font = Font(bold=True)
+
+    # Contenido
+    for i, socio in enumerate(socios, start=1):
+        ws.append([
+            i,
+            socio.cedula,
+            socio.nombre,
+            socio.apellido,
+            socio.telefono or '',
+            socio.email or '',
+            socio.fecha_ingreso.strftime('%d/%m/%Y')
+        ])
+
+    # Generar archivo
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="listado_socios.xlsx"'
+    wb.save(response)
+    return response
+
+ # exportar listado de prestamos
+def exportar_prestamos_pdf(request):
+    prestamos = Prestamo.objects.all().order_by('-fecha_aprobacion')
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="prestamos_lista.pdf"'
+
+    doc = SimpleDocTemplate(response, pagesize=A4)
+    elements = []
+    styles = getSampleStyleSheet()
+
+    elements.append(Paragraph("📄 Lista de Préstamos", styles['Title']))
+    elements.append(Spacer(1, 12))
+
+    datos = [[
+        'Fecha Aprob', 'Solicitante', 'Garante', 
+        'Solicitado', 'Aprobado', 'Plazo', 'Estado'
+    ]]
+
+    for p in prestamos:
+        datos.append([
+            p.fecha_aprobacion.strftime('%d/%m/%Y') if p.fecha_aprobacion else '',
+            f"{p.socio.nombre} {p.socio.apellido}",
+            f"{p.garante.nombre} {p.garante.apellido}" if p.garante else '---',
+            f"${p.cantidad_solicitada:,.2f}",
+            f"${p.cantidad_aprobada:,.2f}" if p.cantidad_aprobada else '$0.00',
+            f"{p.plazo} meses",
+            p.estado
+        ])
+
+    tabla = Table(datos, repeatRows=1)
+    tabla.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+    ]))
+
+    elements.append(tabla)
+    doc.build(elements)
+    return response
+
+def exportar_prestamos_excel(request):
+    prestamos = Prestamo.objects.all().order_by('-fecha_aprobacion')
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Préstamos"
+
+    headers = [
+        'Fecha Aprobación', 'Solicitante', 'Garante', 
+        'Cantidad Solicitada', 'Cantidad Aprobada', 'Plazo', 'Estado'
+    ]
+    ws.append(headers)
+
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=1, column=col).font = Font(bold=True)
+
+    for p in prestamos:
+        ws.append([
+            p.fecha_aprobacion.strftime('%d/%m/%Y') if p.fecha_aprobacion else '',
+            f"{p.socio.nombre} {p.socio.apellido}",
+            f"{p.garante.nombre} {p.garante.apellido}" if p.garante else '',
+            float(p.cantidad_solicitada),
+            float(p.cantidad_aprobada or 0),
+            p.plazo,
+            p.estado
+        ])
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="prestamos_lista.xlsx"'
+    wb.save(response)
+    return response
+
+def exportar_gastosadministrativos_pdf(request):
+    gastos = GastosAdministrativos.objects.order_by('fecha')
+    total_entrada = sum(g.entrada for g in gastos)
+    total_salida = sum(g.salida for g in gastos)
+    saldo_actual = total_entrada - total_salida
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="gastos_administrativos.pdf"'
+
+    doc = SimpleDocTemplate(response, pagesize=A4)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    elements.append(Paragraph("📄 Reporte de Gastos Administrativos", styles['Title']))
+    elements.append(Spacer(1, 12))
+
+    data = [['Fecha', 'Descripción', 'Entrada', 'Salida', 'Saldo']]
+
+    for g in gastos:
+        data.append([
+            g.fecha.strftime('%d/%m/%Y'),
+            g.descripcion,
+            f"${g.entrada:,.2f}",
+            f"${g.salida:,.2f}",
+            f"${g.saldo:,.2f}"
+        ])
+
+    table = Table(data, repeatRows=1)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+    ]))
+
+    elements.append(table)
+    elements.append(Spacer(1, 12))
+    elements.append(Paragraph(f"<strong>Total Entradas:</strong> ${total_entrada:,.2f}", styles['Normal']))
+    elements.append(Paragraph(f"<strong>Total Salidas:</strong> ${total_salida:,.2f}", styles['Normal']))
+    elements.append(Paragraph(f"<strong>Saldo Actual:</strong> ${saldo_actual:,.2f}", styles['Normal']))
+
+    doc.build(elements)
+    return response
+
+
+def exportar_gastosadministrativos_excel(request):
+    gastos = GastosAdministrativos.objects.order_by('fecha')
+    total_entrada = sum(g.entrada for g in gastos)
+    total_salida = sum(g.salida for g in gastos)
+    saldo_actual = total_entrada - total_salida
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Gastos Administrativos"
+
+    headers = ['Fecha', 'Descripción', 'Entrada', 'Salida', 'Saldo']
+    ws.append(headers)
+
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=1, column=col).font = Font(bold=True)
+
+    for g in gastos:
+        ws.append([
+            g.fecha.strftime('%d/%m/%Y'),
+            g.descripcion,
+            float(g.entrada),
+            float(g.salida),
+            float(g.saldo),
+        ])
+
+    # Totales al final
+    ws.append([])
+    ws.append(['', 'Total Entradas', float(total_entrada)])
+    ws.append(['', 'Total Salidas', float(total_salida)])
+    ws.append(['', 'Saldo Actual', float(saldo_actual)])
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="gastos_administrativos.xlsx"'
+    wb.save(response)
+    return response
+
 #dashboard
 @login_required
 def dashboard(request):
@@ -722,14 +1009,19 @@ def dashboard(request):
     total_retiros = Movimiento.objects.filter(salida__gt=0).aggregate(total=Sum('salida'))['total'] or 0
     saldo_total = total_aportes - total_retiros
 
-    prestamos_estado = Prestamo.objects.values('estado').annotate(cantidad=Count('id'))
+    # Totales por estado
+    estados_deseados = ['Aprobado', 'Rechazado', 'Terminado']
+    prestamos_estado_montos = Prestamo.objects.filter(estado__in=estados_deseados).values('estado').annotate(
+        cantidad=Count('id'),
+        monto=Sum('cantidad_solicitada')
+    )
 
-    # Gráfico: aportes vs retiros por mes (últimos 6 meses)
-    hoy = date.today()
-    hace_seis_meses = hoy - relativedelta(months=5)
-    movimientos = Movimiento.objects.filter(fecha_movimiento__gte=hace_seis_meses)
+    # Para gráfico pastel
+    total_aprobados = Prestamo.objects.filter(estado='Aprobado').aggregate(total=Sum('cantidad_solicitada'))['total'] or 0
+    cartera_vencida = PagoPrestamo.objects.filter(estado=False).aggregate(
+        total=Sum('saldo_pago'))['total'] or 0
 
-    movimientos_por_mes = movimientos.annotate(
+    movimientos_por_mes = Movimiento.objects.annotate(
         mes=TruncMonth('fecha_movimiento')
     ).values('mes').annotate(
         total_entradas=Sum('entrada'),
@@ -743,7 +1035,9 @@ def dashboard(request):
         'total_aportes': total_aportes,
         'total_retiros': total_retiros,
         'saldo_total': saldo_total,
-        'prestamos_estado': prestamos_estado,
+        'prestamos_estado_montos': prestamos_estado_montos,
+        'total_aprobados': total_aprobados,
+        'cartera_vencida': cartera_vencida,
         'movimientos_por_mes': movimientos_por_mes,
         'prestamos_recientes': prestamos_recientes,
     })           
@@ -761,3 +1055,54 @@ def configuracion(request):
     return render(request, 'configuracion/configuracion.html', {'form': form, 'configuracion': config})
 
 
+#Gastos administrativos
+def gastos_administrativos(request, action=None, pk=None):
+    if action == 'agregar':
+        form = GastoAdministrativoForm(request.POST or None)
+        if request.method == 'POST' and form.is_valid():
+            nuevo = form.save(commit=False)
+            ultimo = GastosAdministrativos.objects.order_by('-fecha').first()
+            saldo_anterior = ultimo.saldo if ultimo else Decimal('0.00')
+            nuevo.saldo = saldo_anterior + nuevo.entrada - nuevo.salida
+            nuevo.save()
+            return redirect('gastos_admin')
+        return render(request, 'gastos/form_gasto_admin.html', {
+            'form': form,
+            'modo': 'Agregar'
+        })
+
+    elif action == 'editar' and pk:
+        gasto = get_object_or_404(GastosAdministrativos, pk=pk)
+        form = GastoAdministrativoForm(request.POST or None, instance=gasto)
+        if request.method == 'POST' and form.is_valid():
+            gasto = form.save(commit=False)
+            # Aquí podrías recalcular saldo si es necesario, o mantenerlo igual
+            gasto.save()
+            return redirect('gastos_admin')
+        return render(request, 'gastos/form_gasto_admin.html', {
+            'form': form,
+            'modo': 'Editar'
+        })
+
+    elif action == 'eliminar' and pk:
+        gasto = get_object_or_404(GastosAdministrativos, pk=pk)
+        if request.method == 'POST':
+            gasto.delete()
+            return redirect('gastos_admin')
+        return render(request, 'gastos/eliminar_gasto_admin.html', {'gasto': gasto})
+
+    # Lista de gastos por defecto
+    gastos = GastosAdministrativos.objects.exclude(id__isnull=True)
+    total_entrada = gastos.aggregate(total=Sum('entrada'))['total'] or 0
+    total_salida = gastos.aggregate(total=Sum('salida'))['total'] or 0
+    saldo_actual = total_entrada - total_salida
+
+    return render(request, 'gastos/gastos_admin_list.html', {
+        'gastos': gastos,
+        'total_entrada': total_entrada,
+        'total_salida': total_salida,
+        'saldo_actual': saldo_actual
+    })
+def imprimir_socios(request):
+    socios = Socio.objects.filter(activo=True).order_by('apellido')
+    return render(request, 'socios/imprimir/socios_imprimir.html', {'socios': socios})

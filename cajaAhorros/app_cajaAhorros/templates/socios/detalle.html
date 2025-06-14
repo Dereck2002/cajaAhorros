@@ -1,27 +1,45 @@
-    {% extends "base.html" %}
+{% extends "base.html" %}
+{% block content %}
 
-    {% block content %} 
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Detalle del Socio</h4>
+            <a href="{% url 'socio_list' %}" class="btn btn-light btn-sm">
+                <i class="bi bi-arrow-left"></i> Volver al listado
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4 text-center">
+                    {% if socio.foto %}
+                        <img src="{{ socio.foto.url }}" alt="Foto del socio" class="img-thumbnail mb-2" width="150">
+                    {% else %}
+                        <div class="border p-4 rounded bg-light">Sin foto disponible</div>
+                    {% endif %}
+                </div>
 
-    {% block title %}<h1>Detalle del Socio</h1>{% endblock title %}
-
-    <div class="container mt-4">
-    <div class="detalle">
-        
-        <p><strong>Cédula:</strong> {{ socio.cedula }}</p>
-        <p><strong>Nombre:</strong> {{ socio.nombre }} {{ socio.apellido }}</p>
-        <p><strong>Edad:</strong> {{ edad }} años</p>
-        <p><strong>Fecha de Nacimiento:</strong> {{ socio.fecha_nacimiento }}</p>
-        <p><strong>Fecha de Ingreso:</strong> {{ socio.fecha_ingreso }}</p>
-        <p><strong>Foto:</strong><br>
-            {% if socio.foto %}
-                <img class="img-thumbnail" width="100" src="{{ socio.foto.url }}" alt="Foto del socio">
-            {% else %}
-                Sin foto disponible
-            {% endif %}
-        </p>
-        <br>
-        <a href="{% url 'socio_list' %}">← Volver al listado</a>
+                <div class="col-md-8">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Cédula:</strong> {{ socio.cedula }}</p>
+                            <p><strong>Nombre:</strong> {{ socio.nombre }}</p>
+                            <p><strong>Apellido:</strong> {{ socio.apellido }}</p>
+                            <p><strong>Edad:</strong> {{ edad }} años</p>
+                            <p><strong>Fecha de nacimiento:</strong> {{ socio.fecha_nacimiento }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Teléfono:</strong> {{ socio.telefono }}</p>
+                            <p><strong>Dirección:</strong> {{ socio.direccion }}</p>
+                            <p><strong>Email:</strong> {{ socio.email }}</p>
+                            <p><strong>Ocupación:</strong> {{ socio.ocupacion }}</p>
+                            <p><strong>Fecha de ingreso:</strong> {{ socio.fecha_ingreso }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-{% endblock content %} 
+{% endblock content %}

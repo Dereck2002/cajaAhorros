@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}{{ modo }} Gasto Administrativo{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-3">{{ modo }} Gasto Administrativo</h2>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-success">
+            <i class="bi bi-check-circle"></i> {{ modo }}
+        </button>
+        <a href="{% url 'gastos_admin' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

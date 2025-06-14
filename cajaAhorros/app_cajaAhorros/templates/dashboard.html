@@ -43,27 +43,28 @@
     </div>
   </div>
 
-  <!-- Gráfico de barras -->
-  <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-      <h5 class="card-title mb-4">📈 Aportes vs Retiros (Últimos 6 meses)</h5>
-      <canvas id="movimientosChart" height="100"></canvas>
-    </div>
+  <!-- Gráfico de pastel -->
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <h5 class="card-title mb-4">📊 Distribución: Aprobados vs Cartera Vencida</h5>
+    <canvas id="prestamosPieChart" height="100"></canvas>
   </div>
+</div>
 
   <!-- Estado de préstamos -->
   <div class="row g-3 mb-4">
-    {% for p in prestamos_estado %}
-    <div class="col-6 col-md-3">
-      <div class="card shadow-sm text-center border-0 bg-light">
-        <div class="card-body">
-          <h6 class="text-muted">{{ p.estado }}</h6>
-          <h4 class="fw-bold">{{ p.cantidad }}</h4>
-        </div>
+  {% for p in prestamos_estado_montos %}
+  <div class="col-md-4">
+    <div class="card shadow-sm text-center border-0 bg-light">
+      <div class="card-body">
+        <h6 class="text-muted">{{ p.estado }}</h6>
+        <h4 class="fw-bold">{{ p.cantidad }} préstamos</h4>
+        <p class="text-primary">$ {{ p.monto|floatformat:2|intcomma }} solicitados</p>
       </div>
     </div>
-    {% endfor %}
   </div>
+  {% endfor %}
+</div>
 
   <!-- Tabla de préstamos recientes -->
   <div class="card shadow-sm border-0">
@@ -81,12 +82,14 @@
           </thead>
           <tbody>
             {% for p in prestamos_recientes %}
+            {% if p.estado == "Aprobado" %}
             <tr>
               <td>{{ p.socio.nombre }} {{ p.socio.apellido }}</td>
               <td><span class="badge bg-secondary">{{ p.estado }}</span></td>
               <td>$ {{ p.cantidad_solicitada|floatformat:2|intcomma }}</td>
               <td>{{ p.fecha_prestamo|date:"d/m/Y" }}</td>
             </tr>
+            {% endif %}
             {% empty %}
             <tr>
               <td colspan="4" class="text-center text-muted py-3">No hay préstamos recientes.</td>
@@ -102,29 +105,21 @@
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  const ctx = document.getElementById('movimientosChart').getContext('2d');
-  const movimientosChart = new Chart(ctx, {
-    type: 'bar',
+  const ctxPie = document.getElementById('prestamosPieChart').getContext('2d');
+  const prestamosPieChart = new Chart(ctxPie, {
+    type: 'pie',
     data: {
-      labels: [{% for m in movimientos_por_mes %}'{{ m.mes|date:"F" }}',{% endfor %}],
-      datasets: [
-        {
-          label: 'Aportes',
-          backgroundColor: '#198754',
-          data: [{% for m in movimientos_por_mes %}{{ m.total_entradas|floatformat:2 }},{% endfor %}]
-        },
-        {
-          label: 'Retiros',
-          backgroundColor: '#dc3545',
-          data: [{% for m in movimientos_por_mes %}{{ m.total_salidas|floatformat:2 }},{% endfor %}]
-        }
-      ]
+      labels: ['Aprobados', 'Cartera Vencida'],
+      datasets: [{
+        data: [{{ total_aprobados }}, {{ cartera_vencida|default:0 }}],
+        backgroundColor: ['#198754', '#dc3545']
+      }]
     },
     options: {
       responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true
+      plugins: {
+        legend: {
+          position: 'bottom'
         }
       }
     }

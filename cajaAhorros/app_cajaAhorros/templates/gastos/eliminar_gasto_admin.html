@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Eliminar Gasto{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-3">Confirmar eliminación</h2>
+    <p>¿Estás seguro de que deseas eliminar el gasto del <strong>{{ gasto.fecha }}</strong> por "<strong>{{ gasto.descripcion }}</strong>"?</p>
+    
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Sí, eliminar</button>
+        <a href="{% url 'gastos_admin' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

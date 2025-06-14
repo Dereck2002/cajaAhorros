@@ -1,21 +1,65 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block content %} 
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">{% if form.instance.pk %}Editar Socio{% else %}Nuevo Socio{% endif %}</h4>
+        </div>
+        <div class="card-body">
+            {% if form.instance.pk and form.instance.foto %}
+            <div class="mb-3 text-center">
+                <p>Foto actual:</p>
+                <img src="{{ form.instance.foto.url }}" alt="Foto del socio" width="150" height="150" class="rounded-circle border">
+            </div>
+            {% endif %}
 
-{% block title %}
-    <h2>{% if form.instance.pk %}Editar Socio{% else %}Nuevo Socio{% endif %}</h2>
-{% endblock title %}
-
-    {% if form.instance.pk and form.instance.foto %}
-        <p>Foto actual:</p>
-        <img src="{{ form.instance.foto.url }}" alt="Foto del socio" width="150" height="150">
-    {% endif %}
-
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button class="btn btn-primary" type="submit">Guardar</button>
-        <a href="{% url 'socio_list' %}">Cancelar</a>
-    </form>
-
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        {{ form.cedula.label_tag }} {{ form.cedula }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.nombre.label_tag }} {{ form.nombre }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.apellido.label_tag }} {{ form.apellido }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.telefono.label_tag }} {{ form.telefono }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.direccion.label_tag }} {{ form.direccion }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.email.label_tag }} {{ form.email }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.fecha_nacimiento.label_tag }} {{ form.fecha_nacimiento }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.fecha_ingreso.label_tag }} {{ form.fecha_ingreso }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.ocupacion.label_tag }} {{ form.ocupacion }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.foto.label_tag }} {{ form.foto }}
+                    </div>
+                </div>
+                <div class="mt-4 d-flex justify-content-end gap-3">
+                    <button class="btn btn-success" type="submit">
+                        <i class="bi bi-check-circle"></i> Guardar
+                    </button>
+                    <a href="{% url 'socio_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock content %}
+

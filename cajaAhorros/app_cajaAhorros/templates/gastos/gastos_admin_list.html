@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% block title %}<h2 class="mb-3">Para Gastos Administrativos</h2>{% endblock %}
+<!-- botones de exportacion pdf, xls, imprimir -->
+
+<div class="container mt-4">
+    <div class="d-flex flex-wrap justify-content-end align-items-center mb-2">
+        <div class="mb-3 d-flex gap-2 flex-wrap">
+            <a href="{% url 'exportar_gastos_pdf' %}" class="btn btn-danger btn-sm" target="_blank">
+                <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+            </a>
+            <a href="{% url 'exportar_gastos_excel' %}" class="btn btn-success btn-sm" target="_blank">
+                <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+            </a>
+            <a href="{% url 'gastos_administrativos_action' 'agregar' %}" target="_blank" class="btn btn-info btn-sm">
+                <i class=""></i> Registrar
+            </a>
+        </div>
+    </div>
+
+    <div class="mt-4 mb-3">
+            <strong>Total Entradas:</strong> ${{ total_entrada|floatformat:2 }}<br>
+            <strong>Total Salidas:</strong> ${{ total_salida|floatformat:2 }}<br>
+            <strong>Saldo Actual:</strong> ${{ saldo_actual|floatformat:2 }}
+    </div>
+
+    <table class="table table-bordered">
+        <thead class="table-light">
+            <tr>
+                <th>Fecha</th>
+                <th>Descripción</th>
+                <th>Entrada</th>
+                <th>Salida</th>
+                <!-- <th>Saldo</th> -->
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for g in gastos %}
+            <tr>
+                <td>{{ g.fecha|date:"d/m/Y" }}</td>
+                <td>{{ g.descripcion }}</td>
+                <td>${{ g.entrada|floatformat:2 }}</td>
+                <td>${{ g.salida|floatformat:2 }}</td>
+                <!-- <td>${{ g.saldo|floatformat:2 }}</td> -->
+                <td>
+                    <a href="{% url 'gastos_administrativos_action_pk' 'eliminar' g.id %}" class="btn btn-sm btn-danger"
+                        onclick="return confirm('¿Estás seguro de eliminar este gasto?');">
+                        <i class="bi bi-trash"></i>
+                    </a>
+                    <a href="{% url 'gastos_administrativos_action_pk' 'editar' g.id %}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-pencil-square"></i> Editar
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">No hay registros de gastos.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endblock %}
