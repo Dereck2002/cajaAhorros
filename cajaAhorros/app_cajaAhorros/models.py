@@ -1,5 +1,4 @@
 from django.db import models
-<<<<<<< HEAD
 from django.contrib.auth.models import User
 class Rol(models.Model):
     nombre = models.CharField(max_length=50, unique=True)
@@ -8,8 +7,6 @@ class Rol(models.Model):
 
     def __str__(self):
         return self.nombre
-=======
->>>>>>> 4dcec8dda2a3a85289a0c465cb098ddcbd7e290f
 
 class Socio(models.Model):
     user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True)
