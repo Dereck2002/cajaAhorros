@@ -1,25 +1,29 @@
 {% extends "base.html" %}
 
-{% block title %}Gastos Administrativos{% endblock %}
-
 {% block content %}
+{% block title %}<h2 class="mb-3">Para Gastos Administrativos</h2>{% endblock %}
 <!-- botones de exportacion pdf, xls, imprimir -->
-<div class="mb-3 d-flex gap-2 flex-wrap">
-    <a href="{% url 'exportar_gastos_pdf' %}" class="btn btn-danger btn-sm" target="_blank">
-        <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
-    </a>
-    <a href="{% url 'exportar_gastos_excel' %}" class="btn btn-success btn-sm" target="_blank">
-        <i class="bi bi-file-earmark-excel"></i> Exportar Excel
-    </a>
-    <a href="" target="_blank" class="btn btn-info btn-sm">
-        <i class="bi bi-printer"></i> Imprimir Socios
-    </a>
-</div>
+
 <div class="container mt-4">
-    <h2 class="mb-3">Para Gastos Administrativos</h2>
-    <a href="{% url 'gastos_administrativos_action' 'agregar' %}" class="btn btn-primary mb-3">
-        <i class="bi bi-plus-circle"></i> Registrar
-    </a>
+    <div class="d-flex flex-wrap justify-content-end align-items-center mb-2">
+        <div class="mb-3 d-flex gap-2 flex-wrap">
+            <a href="{% url 'exportar_gastos_pdf' %}" class="btn btn-danger btn-sm" target="_blank">
+                <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+            </a>
+            <a href="{% url 'exportar_gastos_excel' %}" class="btn btn-success btn-sm" target="_blank">
+                <i class="bi bi-file-earmark-excel"></i> Exportar Excel
+            </a>
+            <a href="{% url 'gastos_administrativos_action' 'agregar' %}" target="_blank" class="btn btn-info btn-sm">
+                <i class=""></i> Registrar
+            </a>
+        </div>
+    </div>
+
+    <div class="mt-4 mb-3">
+            <strong>Total Entradas:</strong> ${{ total_entrada|floatformat:2 }}<br>
+            <strong>Total Salidas:</strong> ${{ total_salida|floatformat:2 }}<br>
+            <strong>Saldo Actual:</strong> ${{ saldo_actual|floatformat:2 }}
+    </div>
 
     <table class="table table-bordered">
         <thead class="table-light">
@@ -28,7 +32,7 @@
                 <th>Descripción</th>
                 <th>Entrada</th>
                 <th>Salida</th>
-                <th>Saldo</th>
+                <!-- <th>Saldo</th> -->
                 <th>Acciones</th>
             </tr>
         </thead>
@@ -39,10 +43,10 @@
                 <td>{{ g.descripcion }}</td>
                 <td>${{ g.entrada|floatformat:2 }}</td>
                 <td>${{ g.salida|floatformat:2 }}</td>
-                <td>${{ g.saldo|floatformat:2 }}</td>
+                <!-- <td>${{ g.saldo|floatformat:2 }}</td> -->
                 <td>
                     <a href="{% url 'gastos_administrativos_action_pk' 'eliminar' g.id %}" class="btn btn-sm btn-danger"
-                       onclick="return confirm('¿Estás seguro de eliminar este gasto?');">
+                        onclick="return confirm('¿Estás seguro de eliminar este gasto?');">
                         <i class="bi bi-trash"></i>
                     </a>
                     <a href="{% url 'gastos_administrativos_action_pk' 'editar' g.id %}" class="btn btn-sm btn-primary">
@@ -57,11 +61,4 @@
             {% endfor %}
         </tbody>
     </table>
-
-    <div class="mt-4">
-        <strong>Total Entradas:</strong> ${{ total_entrada|floatformat:2 }}<br>
-        <strong>Total Salidas:</strong> ${{ total_salida|floatformat:2 }}<br>
-        <strong>Saldo Actual:</strong> ${{ saldo_actual|floatformat:2 }}
-    </div>
-</div>
-{% endblock %}
+    {% endblock %}

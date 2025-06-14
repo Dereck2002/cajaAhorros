@@ -61,6 +61,7 @@ urlpatterns = [
     path('gastos/<str:action>/', views.gastos_administrativos, name='gastos_administrativos_action'),
     path('gastos/editar/<int:pk>/', views.gastos_administrativos, {'action': 'editar'}, name='gasto_editar'),
     path('gastos/<str:action>/<int:pk>/', views.gastos_administrativos, name='gastos_administrativos_action_pk'),
+    path('aportaciones/<int:socio_id>/exportar/pdf/', views.exportar_aportaciones_pdf, name='exportar_aportaciones_pdf'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

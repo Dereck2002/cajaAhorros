@@ -2,27 +2,27 @@
 {% load static %}
 
 {% block content %}
+{% block title %}<h2>Lista de Préstamos</h2>{% endblock title %}
 <!-- botones de exportacion pdf, xls, imprimir -->
-<div class="mb-3 d-flex gap-2 flex-wrap">
+
+<div class="container">
+
+    <div class="d-flex flex-wrap justify-content-end align-items-center mb-3">
+    <div class="d-flex flex-wrap gap-3">
     <a href="{% url 'exportar_prestamos_pdf' %}" class="btn btn-danger btn-sm" target="_blank">
         <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
     </a>
     <a href="{% url 'exportar_prestamos_excel' %}" class="btn btn-success btn-sm" target="_blank">
         <i class="bi bi-file-earmark-excel"></i> Exportar Excel
     </a>
-    <a href="" target="_blank" class="btn btn-info btn-sm">
-        <i class="bi bi-printer"></i> Imprimir Listado de prestamos
-    </a>
-</div>
-<div class="container">
-    <h2>Lista de Préstamos</h2>
-    
     {# El botón "Nuevo Préstamo" solo se muestra si el usuario tiene el permiso de añadir #}
     {% if perms.app_cajaAhorros.add_prestamo %}
-    <a href="{% url 'prestamo_create' %}" class="btn btn-success mb-3">
-        <i class="bi bi-plus-circle"></i> Nuevo Préstamo
+    <a href="{% url 'prestamo_create' %}" target="_blank" class="btn btn-info btn-sm">
+        <i class="bi bi-printer"></i> Nuevo Préstamo
     </a>
     {% endif %}
+</div>
+</div>
 
     <table class="table table-bordered">
         <thead class="table-light">

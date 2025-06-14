@@ -6,7 +6,7 @@ from django.db.models import Count, Sum
 from django.contrib import messages
 from .models import Movimiento, Socio, Cargo, Prestamo, PagoPrestamo, Configuracion, GastosAdministrativos
 from .forms import SocioForm, PrestamoForm, ConfiguracionForm, GastoAdministrativoForm
-from datetime import date
+from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 from django.core.paginator import Paginator
 from decimal import Decimal
@@ -336,6 +336,56 @@ def crear_o_editar_prestamo(request, pk=None):
         if prestamo:
             form.initial['cuota'] = ''
     return render(request, 'prestamo/crear_editar_prestamo.html', {'form': form})
+
+def exportar_aportaciones_pdf(request, socio_id):
+    socio = get_object_or_404(Socio, pk=socio_id)
+    movimientos = Movimiento.objects.filter(socio=socio).order_by('fecha_movimiento')
+
+    total_aportes = movimientos.filter(salida=0).aggregate(total=Sum('entrada'))['total'] or 0
+    total_retiros = movimientos.filter(entrada=0).aggregate(total=Sum('salida'))['total'] or 0
+    saldo = total_aportes - total_retiros
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="aportaciones_{socio.cedula}.pdf"'
+
+    doc = SimpleDocTemplate(response, pagesize=A4)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    fecha_actual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
+    elements.append(Paragraph(f"Aportaciones del socio: <b>{socio.nombre} {socio.apellido}</b>", styles['Title']))
+    elements.append(Paragraph(f"Cédula: {socio.cedula}", styles['Normal']))
+    elements.append(Paragraph(f"Fecha de generación: {fecha_actual}", styles['Normal']))
+    elements.append(Spacer(1, 12))
+
+    data = [['Fecha', 'Descripción', 'Entrada', 'Salida']]
+    for m in movimientos:
+        data.append([
+            m.fecha_movimiento.strftime('%d/%m/%Y'),
+            m.detalle_movimiento,
+            f"${m.entrada:,.2f}" if m.entrada else "",
+            f"${m.salida:,.2f}" if m.salida else "",
+        ])
+
+    table = Table(data, repeatRows=1)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+    ]))
+
+    elements.append(table)
+    elements.append(Spacer(1, 12))
+    elements.append(Paragraph(f"<b>Total Aportes:</b> ${total_aportes:,.2f}", styles['Normal']))
+    elements.append(Paragraph(f"<b>Total Retiros:</b> ${total_retiros:,.2f}", styles['Normal']))
+    elements.append(Paragraph(f"<b>Saldo:</b> ${saldo:,.2f}", styles['Normal']))
+    elements.append(Spacer(1, 36))
+    elements.append(Paragraph("Firma Tesorero: _________________________", styles['Normal']))
+
+    doc.build(elements)
+    return response
 
 
 @login_required
@@ -744,6 +794,10 @@ def exportar_amortizacion_pdf(request, pk):
     ]))
 
     elements.append(tabla)
+     # Firma
+    elements.append(Spacer(1, 24))
+    elements.append(Paragraph("__________________________", styles['Normal']))
+    elements.append(Paragraph("Firma del Tesorero", styles['Normal']))
     doc.build(elements)
     return response
 
@@ -793,7 +847,9 @@ def exportar_socios_pdf(request):
     styles = getSampleStyleSheet()
 
     # Título
+    fecha_actual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     elements.append(Paragraph("Listado de Socios Activos", styles['Title']))
+    elements.append(Paragraph(f"📅 Generado el: {fecha_actual}", styles['Normal']))
     elements.append(Spacer(1, 12))
 
     # Cabecera de tabla
@@ -823,6 +879,10 @@ def exportar_socios_pdf(request):
     ]))
 
     elements.append(tabla)
+     # Firma
+    elements.append(Spacer(1, 24))
+    elements.append(Paragraph("__________________________", styles['Normal']))
+    elements.append(Paragraph("Firma del Secretario(a)", styles['Normal']))
     doc.build(elements)
     return response
 
@@ -872,7 +932,9 @@ def exportar_prestamos_pdf(request):
     elements = []
     styles = getSampleStyleSheet()
 
+    fecha_actual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     elements.append(Paragraph("📄 Lista de Préstamos", styles['Title']))
+    elements.append(Paragraph(f"📅 Generado el: {fecha_actual}", styles['Normal']))
     elements.append(Spacer(1, 12))
 
     datos = [[
@@ -903,6 +965,10 @@ def exportar_prestamos_pdf(request):
     ]))
 
     elements.append(tabla)
+     # Firma
+    elements.append(Spacer(1, 24))
+    elements.append(Paragraph("__________________________", styles['Normal']))
+    elements.append(Paragraph("Firma del Tesorero", styles['Normal']))
     doc.build(elements)
     return response
 
@@ -953,18 +1019,20 @@ def exportar_gastosadministrativos_pdf(request):
     styles = getSampleStyleSheet()
     elements = []
 
+    # Título y fecha
+    fecha_actual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     elements.append(Paragraph("📄 Reporte de Gastos Administrativos", styles['Title']))
+    elements.append(Paragraph(f"📅 Generado el: {fecha_actual}", styles['Normal']))
     elements.append(Spacer(1, 12))
 
-    data = [['Fecha', 'Descripción', 'Entrada', 'Salida', 'Saldo']]
-
+    # Tabla de datos
+    data = [['Fecha', 'Descripción', 'Entrada', 'Salida']]
     for g in gastos:
         data.append([
             g.fecha.strftime('%d/%m/%Y'),
             g.descripcion,
             f"${g.entrada:,.2f}",
             f"${g.salida:,.2f}",
-            f"${g.saldo:,.2f}"
         ])
 
     table = Table(data, repeatRows=1)
@@ -978,13 +1046,20 @@ def exportar_gastosadministrativos_pdf(request):
 
     elements.append(table)
     elements.append(Spacer(1, 12))
+
+    # Totales
     elements.append(Paragraph(f"<strong>Total Entradas:</strong> ${total_entrada:,.2f}", styles['Normal']))
     elements.append(Paragraph(f"<strong>Total Salidas:</strong> ${total_salida:,.2f}", styles['Normal']))
     elements.append(Paragraph(f"<strong>Saldo Actual:</strong> ${saldo_actual:,.2f}", styles['Normal']))
+    elements.append(Spacer(1, 36))
+
+    # Firma
+    elements.append(Spacer(1, 24))
+    elements.append(Paragraph("__________________________", styles['Normal']))
+    elements.append(Paragraph("Firma del Tesorero", styles['Normal']))
 
     doc.build(elements)
     return response
-
 
 def exportar_gastosadministrativos_excel(request):
     gastos = GastosAdministrativos.objects.order_by('fecha')
