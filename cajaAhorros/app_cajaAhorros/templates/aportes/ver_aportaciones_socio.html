@@ -6,23 +6,23 @@
 
 <div class="container mt-4">
     <div class="d-flex flex-wrap justify-content-end align-items-center mb-2">
-    <div class="d-flex gap-2 flex-wrap">
-        <a href="{% url 'exportar_socios_pdf' %}" class="btn btn-danger btn-sm" target="_blank">
-            <i class="bi bi-file-earmark-pdf"></i> PDF
-        </a>
-        <a href="{% url 'exportar_socios_excel' %}" class="btn btn-success btn-sm" target="_blank">
-            <i class="bi bi-file-earmark-excel"></i> Excel
-        </a>
-        <a href="{% url 'imprimir_socios' %}" target="_blank" class="btn btn-info btn-sm">
-            <i class="bi bi-printer"></i> Imprimir
-        </a>
-        {% if perms.app_cajaAhorros.add_socio %}
-        <a onclick="abrirModalAgregar()" class="btn btn-primary btn-sm">
-            <i class="bi bi-person-plus"></i> Nuevo Registro
-        </a>
-        {% endif %}
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'exportar_aportaciones_pdf' socio.id %}" class="btn btn-danger btn-sm" target="_blank">
+                <i class="bi bi-file-earmark-pdf"></i> PDF
+            </a>
+            <a href="{% url 'exportar_socios_excel' %}" class="btn btn-success btn-sm" target="_blank">
+                <i class="bi bi-file-earmark-excel"></i> Excel
+            </a>
+            <a href="{% url 'imprimir_socios' %}" target="_blank" class="btn btn-info btn-sm">
+                <i class="bi bi-printer"></i> Imprimir
+            </a>
+            {% if perms.app_cajaAhorros.add_socio %}
+            <a onclick="abrirModalAgregar()" class="btn btn-primary btn-sm">
+                <i class="bi bi-person-plus"></i> Nuevo Registro
+            </a>
+            {% endif %}
+        </div>
     </div>
-</div>
 
     <p><strong>Total de aportes:</strong> ${{ total_aportes|floatformat:2 }}</p>
     <p><strong>Total de retiros:</strong> ${{ total_retiros|floatformat:2 }}</p>
@@ -57,15 +57,17 @@
                     {# Botón para editar #}
                     {% if perms.app_cajaAhorros.change_movimiento %}
                     {% if m.entrada > 0 %}
-                        <button class="btn btn-sm btn-warning"
-                            onclick="abrirModalEditar({{ m.id }}, '{{ m.detalle_movimiento|escapejs }}', '{{ m.entrada|floatformat:"2" }}', '{{ m.fecha_movimiento|date:"Y-m-d" }}', 'entrada')">
-                            ✏️ Editar
-                        </button>
+                    <button class="btn btn-sm btn-warning"
+                        onclick="abrirModalEditar({{ m.id }}, '{{ m.detalle_movimiento|escapejs }}', '{{ m.entrada|floatformat:"
+                        2" }}', '{{ m.fecha_movimiento|date:"Y-m-d" }}' , 'entrada' )">
+                        ✏️ Editar
+                    </button>
                     {% else %}
-                        <button class="btn btn-sm btn-warning"
-                            onclick="abrirModalEditar({{ m.id }}, '{{ m.detalle_movimiento|escapejs }}', '{{ m.salida|floatformat:"2" }}', '{{ m.fecha_movimiento|date:"Y-m-d" }}', 'salida')">
-                            ✏️ Editar
-                        </button>
+                    <button class="btn btn-sm btn-warning"
+                        onclick="abrirModalEditar({{ m.id }}, '{{ m.detalle_movimiento|escapejs }}', '{{ m.salida|floatformat:"
+                        2" }}', '{{ m.fecha_movimiento|date:"Y-m-d" }}' , 'salida' )">
+                        ✏️ Editar
+                    </button>
                     {% endif %}
 
 
@@ -75,7 +77,8 @@
                     {# Botón para eliminar #}
                     {% if perms.app_cajaAhorros.delete_movimiento %}
                     <button class="btn btn-sm btn-danger"
-                        onclick="abrirModal('{{ m.id }}', 'la aportación de {{ m.fecha_movimiento|date:"d/m/Y" }}', 'aporte')">
+                        onclick="abrirModal('{{ m.id }}', 'la aportación de {{ m.fecha_movimiento|date:" d/m/Y"
+                        }}', 'aporte' )">
                         🗑 Eliminar
                     </button>
 
@@ -91,7 +94,7 @@
         </tbody>
     </table>
 
-        {% if movimientos|length == 0 %}
+    {% if movimientos|length == 0 %}
     <div style="border: 2px solid orange; padding: 10px; margin-bottom: 20px; background-color: #fff3cd;">
         ⚠ Sin aportaciones registradas para este socio.
     </div>
@@ -165,19 +168,19 @@
         }
 
 
-       function abrirModalEditar(id, detalle, monto, fecha, tipo) {
-    document.getElementById('modalTitulo').innerText = 'Editar Aportación';
-    document.getElementById('formAporte').action = '/aportes/editar/' + id + '/';
-    document.getElementById('detalle_movimiento').value = detalle;
-    document.getElementById('tipo').value = tipo;
-    
- // 🔥 Aquí corregimos el formato de coma a punto
-    let montoNumerico = parseFloat(monto.replace(',', '.'));
-    document.getElementById('monto').value = montoNumerico.toFixed(2);
-    //document.getElementById('monto').value = parseFloat(monto).toFixed(2);
-    document.getElementById('fecha_movimiento').value = fecha;
-    document.getElementById('modalAporte').style.display = 'flex';
-}
+        function abrirModalEditar(id, detalle, monto, fecha, tipo) {
+            document.getElementById('modalTitulo').innerText = 'Editar Aportación';
+            document.getElementById('formAporte').action = '/aportes/editar/' + id + '/';
+            document.getElementById('detalle_movimiento').value = detalle;
+            document.getElementById('tipo').value = tipo;
+
+            // 🔥 Aquí corregimos el formato de coma a punto
+            let montoNumerico = parseFloat(monto.replace(',', '.'));
+            document.getElementById('monto').value = montoNumerico.toFixed(2);
+            //document.getElementById('monto').value = parseFloat(monto).toFixed(2);
+            document.getElementById('fecha_movimiento').value = fecha;
+            document.getElementById('modalAporte').style.display = 'flex';
+        }
 
 
         function cerrarModal() {
