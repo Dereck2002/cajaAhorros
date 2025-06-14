@@ -12,9 +12,6 @@
             <a href="{% url 'exportar_socios_excel' %}" class="btn btn-success btn-sm" target="_blank">
                 <i class="bi bi-file-earmark-excel"></i> Excel
             </a>
-            <a href="{% url 'imprimir_socios' %}" target="_blank" class="btn btn-info btn-sm">
-                <i class="bi bi-printer"></i> Imprimir
-            </a>
             {% if perms.app_cajaAhorros.add_socio %}
             <a href="{% url 'crear_socio' %}" class="btn btn-primary btn-sm">
                 <i class="bi bi-person-plus"></i> Nuevo Socio
